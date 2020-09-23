@@ -2,6 +2,7 @@
 	require 'AutoloadMapping.php';
 	$mapping = new AutoloadMapping(__DIR__.DIRECTORY_SEPARATOR.'lib');
 	$mapping->registerClasses();
+	SC\Options::init(2);
 	interface delete_it {
 		function getIBlock();
 		function getParent();

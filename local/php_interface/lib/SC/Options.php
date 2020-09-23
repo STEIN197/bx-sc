@@ -9,11 +9,11 @@
 	final class Options {
 
 		private static $instance;
-
+		
 		private $options = [];
 		private $iblockID;
 
-		private function __construct(int $iblockID) {
+		private function __construct() {
 			$this->iblockID = $iblockID;
 			$this->setup();
 			self::$instance = $this;
@@ -43,7 +43,11 @@
 			return $this->options;
 		}
 
-		public static function getInstance(int $iblockID): self {
-			return self::$instance ?: self::$instance = new self($iblockID);
+		public static function getInstance(): self {
+			return self::$instance;
+		}
+
+		public static function init(int $iblockID): void {
+			self::$instance = new self($iblockID);
 		}
 	}
