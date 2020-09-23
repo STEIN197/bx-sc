@@ -2,35 +2,48 @@
 
 	namespace SC;
 
-	class Options {
+	use \CModule;
+	use \CIBlockElement;
+	use \CFile;
 
-		public const IBLOCK_ID = 2;
-		private static $options = null;
+	final class Options {
 
-		private static function setup(): void {
-			\CModule::includeModule('iblock');
-			$rsElements = \CIBlockElement::GetList(
+		private static $instance;
+
+		private $options = [];
+		private $iblockID;
+
+		private function __construct(int $iblockID) {
+			$this->iblockID = $iblockID;
+			$this->setup();
+			self::$instance = $this;
+		}
+
+		private function setup(): void {
+			CModule::includeModule('iblock');
+			$rsElements = CIBlockElement::GetList(
 				array(), array(
 					'ACTIVE' => 'Y',
-					'IBLOCK_ID' => self::IBLOCK_ID,
+					'IBLOCK_ID' => $this->iblockID,
 					'SECTION_ID' => false
 				)
 			);
-			self::$options = [];
 			while ($elt = $rsElements->GetNextElement()) {
 				$f = $elt->GetFields();
-				$f['PREVIEW_PICTURE'] = \CFile::GetFileArray($f['PREVIEW_PICTURE']);
-				$f['DETAIL_PICTURE'] = \CFile::GetFileArray($f['DETAIL_PICTURE']);
-				self::$options[$f['CODE']] = $f;
-				self::$options[$f['CODE']]['PROPERTIES'] = $elt->GetProperties();
+				$f['PREVIEW_PICTURE'] = CFile::GetFileArray($f['PREVIEW_PICTURE']);
+				$f['DETAIL_PICTURE'] = CFile::GetFileArray($f['DETAIL_PICTURE']);
+				$this->options[$f['CODE']] = $f;
+				$this->options[$f['CODE']]['PROPERTIES'] = $elt->GetProperties();
 			}
 		}
 		
-		public static function &get(?string $key = null): ?array {
-			if (!self::$options)
-				self::setup();
+		public function &get(?string $key = null): ?array {
 			if ($key)
-				return @self::$options[$key] ?: null;
-			return self::$options;
+				return @$this->options[$key] ?: null;
+			return $this->options;
+		}
+
+		public static function getInstance(int $iblockID): self {
+			return self::$instance ?: self::$instance = new self($iblockID);
 		}
 	}
