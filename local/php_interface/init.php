@@ -4,19 +4,19 @@
 	$mapping->registerClasses();
 	SC\Options::init(2);
 	trait delete_it {
-		abstract function getFields();
 		abstract function getProperties();
-		abstract function setFields();
 		abstract function setProperties();
-		abstract function getField();
 		abstract function getProperty();
-		abstract function setField();
 		abstract function setProperty();
-		protected $arFields;
 		protected $arProperties;
 		
 		// abstract class Entity
 		protected $id;
+		protected $arFields;
+		abstract function getFields();
+		abstract function setFields();
+		abstract function getField();
+		abstract function setField();
 		function getID(): ?int {}
 		abstract function save(): void;
 		abstract function delete(): void;
@@ -38,6 +38,7 @@
 
 		// class IBlock extends Entity implements EntityContainer
 		// class Section extends Entity implements EntityContainer use IBlockEntity, IBlockTreeEntity
+		
 		// class Element extends Entity use IBlockEntity, IBlockTreeEntity
 		abstract function getParents(): array;
 		abstract function setParents(): array;
