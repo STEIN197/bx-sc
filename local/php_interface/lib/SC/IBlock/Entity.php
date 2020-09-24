@@ -22,6 +22,7 @@
 			} else {
 				$this->arFields = [];
 			}
+			return $this->arFields;
 		}
 
 		public final function setFields(array $arFields): void {

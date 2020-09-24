@@ -65,7 +65,7 @@
 				(new Property($this->arProperties[$code]))->save();
 		}
 
-		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], array $arSelect = [], ?array $arNav = null): array {
+		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = [], ?array $arNav = null): array {
 			$rs = CIBlock::GetList($arOrder, $arFilter);
 			$result = [];
 			while ($ar = $rs->GetNext())
@@ -142,13 +142,15 @@
 					} else {
 						$clauseSelect = "DISTINCT {$valuesTableName}.VALUE";
 					}
+					$clauseWhere[] = "{$valuesTableName}.VALUE IS NOT NULL";
 				} else {
 					$valuesTableName = "b_iblock_element_prop_s{$this->getID()}";
 					if ($isNum) {
 						$clauseSelect = "DISTINCT TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM {$valuesTableName}.PROPERTY_{$property->getID()})) AS VALUE";
 					} else {
-						$clauseSelect = "DISTINCT {$valuesTableName}.PROPERTY_{$arProperty['ID']} AS VALUE";
+						$clauseSelect = "DISTINCT {$valuesTableName}.PROPERTY_{$property->getID()} AS VALUE";
 					}
+					$clauseWhere[] = "{$valuesTableName}.PROPERTY_{$property->getID()} IS NOT NULL";
 				}
 				$clauseFrom = "b_iblock_element LEFT JOIN {$valuesTableName} ON b_iblock_element.ID = {$valuesTableName}.IBLOCK_ELEMENT_ID";
 				if ($arFilter) {

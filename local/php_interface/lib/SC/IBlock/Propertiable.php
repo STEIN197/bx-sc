@@ -14,6 +14,7 @@
 			} else {
 				$this->arProperties = [];
 			}
+			return $this->arProperties;
 		}
 
 		public final function setProperties(array $arProperties): void {
