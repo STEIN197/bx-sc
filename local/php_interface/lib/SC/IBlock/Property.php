@@ -5,8 +5,6 @@
 	use \Exception;
 
 	class Property extends Entity {
-		
-		use IBlockEntity;
 
 		public function __construct(?array $arFields = null) {
 			$this->arFields = $arFields;

@@ -2,8 +2,7 @@
 	namespace SC\IBlock;
 
 	class Element extends Entity {
-		
-		use IBlockEntity;
+
 		use Parentable;
 		use Propertiable;
 

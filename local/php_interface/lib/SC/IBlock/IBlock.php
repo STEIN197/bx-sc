@@ -13,6 +13,10 @@
 			$this->arProperties = $arProperties;
 		}
 
+		public function getIBlock(): ?IBlock {
+			return $this;
+		}
+
 		public function save(): void {
 			$ciblock = new CIBlock;
 			if ($this->id) {
@@ -74,12 +78,16 @@
 			return $o;
 		}
 
-		// TODO
-		public function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {}
+		public function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+			return Element::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->id]), $arOrder, $arSelect, $arNav);
+		}
+
+		public function getSections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+			return Section::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->id]), $arOrder, $arSelect, $arNav);
+		}
 
 		// TODO
-		public function getSections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {}
-
-		// TODO
-		public function getDistinctValues($property, array $arFilter = null, bool $includeInactive = false): array {}
+		public function getDistinctValues($property, array $arFilter = null, bool $includeInactive = false): array {
+			$property = Property::make($property);
+		}
 	}

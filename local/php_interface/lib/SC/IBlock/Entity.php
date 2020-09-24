@@ -6,6 +6,13 @@
 		protected $id;
 		protected $arFields;
 
+		public function getIBlock(): ?IBlock {
+			static $iblock = null;
+			if (!$iblock && $this->arFields['IBLOCK_ID'])
+				$iblock = IBlock::getByID((int) $this->arFields['IBLOCK_ID']);
+			return $iblock;
+		}
+
 		public final function getFields(): array {
 			if (!is_array($this->arFields))
 				$this->fetchFields();
@@ -60,7 +67,7 @@
 			if (is_int($entity) || is_string($entity) && preg_match('/^\d+$/', $entity))
 				return static::getByID((int) $entity, true);
 			if (is_array($entity) && $entity['ID'])
-				return static::getByID((int) $entity['ID'], true);
+				return static::wrap($entity);
 			if ($entity instanceof self)
 				return $entity;
 			return null;
