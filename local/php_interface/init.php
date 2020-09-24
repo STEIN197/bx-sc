@@ -40,15 +40,15 @@
 		protected $iblock;
 		public final function getIBlock(): ?IBlock {}
 
-		// trait IBlockTreeEntity
+		// trait Parentable
 		protected $parent;
 		public final function getParent(): ?Section {}
 		public function setParent($parent): ?Section {}
 
 		// class IBlock extends Entity implements EntityContainer user Propertiable
-		// class Section extends Entity implements EntityContainer use IBlockEntity, IBlockTreeEntity, Propertiable
+		// class Section extends Entity implements EntityContainer use IBlockEntity, Parentable, Propertiable
 
-		// class Element extends Entity use IBlockEntity, IBlockTreeEntity, Propertiable
+		// class Element extends Entity use IBlockEntity, Parentable, Propertiable
 		abstract function getParents(): array;
 		abstract function setParents(): array;
 		

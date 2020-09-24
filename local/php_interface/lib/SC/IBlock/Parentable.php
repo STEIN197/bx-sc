@@ -1,7 +1,7 @@
 <?php
 	namespace SC\IBlock;
 
-	trait IBlockTreeEntity {
+	trait Parentable {
 
 		protected $parent;
 
