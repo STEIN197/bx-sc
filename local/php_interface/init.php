@@ -6,38 +6,44 @@
 	trait delete_it {
 
 		// trait Propertiable
-		abstract function getProperties(): array;
-		abstract function setProperties(array $properties);
-		abstract function getProperty(string $key): ?array;
-		abstract function setProperty(string $key, $value);
 		protected $arProperties;
+		public final function getProperties(): array {}
+		public final function setProperties(array $arProperties): void {}
+		public final function getProperty(string $key) {}
+		public final function setProperty(string $key, $value) {}
+		abstract protected function fetchProperties(): void;
 		
 		// abstract class Entity
 		protected $id;
 		protected $arFields;
-		abstract function getFields(): array;
-		abstract function setFields(array $arFields);
-		abstract function getField(string $key): ?array;
-		abstract function setField(string $key, $value);
-		function getID(): ?int {}
-		abstract function save(): void;
-		abstract function delete(): void;
-		abstract function make($entity); // Из $intID, ['ID'], Entity::$id
-		abstract static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array;
-		abstract static function getByID(int $id): ?self; // TODO: Только в трейтах
-		static function castTypes(array &$arFields): void {}
+		public final function getFields(): array {}
+		public final function setFields(array $arFields): void {}
+		public final function getField(string $key) {}
+		public final function setField(string $key, $value) {}
+		public final function getID(): ?int {}
+		public function __toString() {}
+		abstract public function save(): void;
+		abstract public function delete(): void;
+		abstract protected function fetchFields(): void;
+		abstract public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array;
+		abstract public static function getByID(int $id, bool $onlyStub = false);
+		public static function wrap(array $arFields) {}
+		public static final function make($entity) {}
+		public static final function castTypes(array &$arFields): void {}
 		
 		// interface EntityContainer
-		abstract function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array;
-		abstract function getSections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array;
-		abstract function getDistinctValues($property, bool $includeInactive = true, array $arFilter = null);
+		abstract public function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array;
+		abstract public function getSections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array;
+		abstract public function getDistinctValues($property, array $arFilter = null, bool $includeInactive = false): array;
 		
 		// trait IBlockEntity
-		abstract function getIBlock(): ?IBlock;
+		protected $iblock;
+		public final function getIBlock(): ?IBlock {}
 
 		// trait IBlockTreeEntity
-		abstract function getParent();
-		abstract function setParent(Section $parent);
+		protected $parent;
+		public final function getParent(): ?Section {}
+		public function setParent($parent): ?Section {}
 
 		// class IBlock extends Entity implements EntityContainer user Propertiable
 		// class Section extends Entity implements EntityContainer use IBlockEntity, IBlockTreeEntity, Propertiable
