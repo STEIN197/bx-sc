@@ -94,8 +94,83 @@
 			return Section::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->id]), $arOrder, $arSelect, $arNav);
 		}
 
-		// TODO
-		public function getDistinctValues($property, array $arFilter = null, bool $includeInactive = false): array {
+		public function getDistinctValues($property, ?array $arFilter = null, bool $includeInactive = false): ?array {
+			global $DB;
+			if (!$this->getID())
+				return null;
 			$property = Property::make($property);
+			$q = $this->getDistinctValuesQuery($property, $arFilter, $includeInactive);
+			$result = [];
+			$rs = $DB->Query($q);
+			while ($ar = $rs->Fetch())
+				$result[] = $ar['VALUE'];
+			natsort($result);
+			return $result;
+		}
+
+		protected function getDistinctValuesQuery(Property $property, ?array $arFilter = null, bool $includeInactive = false): string {
+			$isMultiple = $property->getField('MULTIPLE') === 'Y';
+			$isNum = $property->getField('PROPERTY_TYPE') === 'N';
+			$clauseSelect = $clauseFrom = $clauseWhere = '';
+			$clauseWhere = ["b_iblock_element.IBLOCK_ID = {$this->getID()}"];
+			// Свойства в общей таблице
+			if ($this->getField('VERSION') == 1) {
+				if ($isNum) {
+					$clauseSelect = "DISTINCT TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM b_iblock_element_property.VALUE_NUM)) AS VALUE";
+				} else {
+					$clauseSelect = "DISTINCT b_iblock_element_property.VALUE";
+				}
+				$clauseFrom = "b_iblock_element LEFT JOIN b_iblock_element_property ON b_iblock_element.ID = b_iblock_element_property.IBLOCK_ELEMENT_ID";
+				$clauseWhere[] = "b_iblock_element_property.VALUE IS NOT NULL";
+				if ($arFilter) {
+					foreach ($arFilter as $code => $value) {
+						$arProp = $this->getProperty($code);
+						$clauseFrom .= " LEFT JOIN b_iblock_element_property AS property_{$code} ON b_iblock_element.ID = property_{$code}.IBLOCK_ELEMENT_ID";
+						$clauseWhere[] = "property_{$code}.IBLOCK_PROPERTY_ID = {$arProp['ID']}";
+						if ($arProp['PROPERTY_TYPE'] === 'N')
+							$clauseWhere[] = "property_{$code}.VALUE_NUM = {$value}";
+						else
+							$clauseWhere[] = "property_{$code}.VALUE = '{$value}'";
+					}
+				}
+			// Свойства в отдельной таблице
+			} else {
+				if ($isMultiple) {
+					$valuesTableName = "b_iblock_element_prop_m{$this->getID()}";
+					if ($isNum) {
+						$clauseSelect = "DISTINCT TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM {$valuesTableName}.VALUE_NUM)) AS VALUE";
+					} else {
+						$clauseSelect = "DISTINCT {$valuesTableName}.VALUE";
+					}
+				} else {
+					$valuesTableName = "b_iblock_element_prop_s{$this->getID()}";
+					if ($isNum) {
+						$clauseSelect = "DISTINCT TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM {$valuesTableName}.PROPERTY_{$property->getID()})) AS VALUE";
+					} else {
+						$clauseSelect = "DISTINCT {$valuesTableName}.PROPERTY_{$arProperty['ID']} AS VALUE";
+					}
+				}
+				$clauseFrom = "b_iblock_element LEFT JOIN {$valuesTableName} ON b_iblock_element.ID = {$valuesTableName}.IBLOCK_ELEMENT_ID";
+				if ($arFilter) {
+					foreach ($arFilter as $code => $value) {
+						$arProp = $this->getProperty($code);
+						if ($arProp['MULTIPLE'] === 'Y') {
+							$clauseFrom .= " LEFT JOIN b_iblock_element_prop_m{$this->getID()} AS property_{$code} ON b_iblock_element.ID = property_{$code}.IBLOCK_ELEMENT_ID";
+							$clauseWhere[] = "property_{$code}.IBLOCK_PROPERTY_ID = {$arProp['ID']}";
+							if ($arProp['PROPERTY_TYPE'] === 'N')
+								$clauseWhere[] = "property_{$code}.VALUE_NUM = {$value}";
+							else
+								$clauseWhere[] = "property_{$code}.VALUE = '{$value}'";
+						} else {
+							if ($arProp['PROPERTY_TYPE'] === 'N')
+								$clauseWhere[] = "b_iblock_element_prop_s{$this->getID()}.PROPERTY_{$arProp['ID']} = {$value}";
+							else
+								$clauseWhere[] = "b_iblock_element_prop_s{$this->getID()}.PROPERTY_{$arProp['ID']} = '{$value}'";
+						}
+					}
+				}
+			}
+			$clauseWhere = join(' AND ', $clauseWhere);
+			return "SELECT {$clauseSelect} FROM {$clauseFrom} WHERE {$clauseWhere}";
 		}
 	}

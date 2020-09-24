@@ -7,5 +7,5 @@
 
 		public function getSections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array;
 
-		public function getDistinctValues($property, array $arFilter = null, bool $includeInactive = false): array;
+		public function getDistinctValues($property, array $arFilter = null, bool $includeInactive = false): ?array;
 	}
