@@ -65,7 +65,15 @@
 				(new Property($this->arProperties[$code]))->save();
 		}
 
-		public static function getByID(int $id, bool $onlyStub = false) {
+		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], array $arSelect = [], ?array $arNav = null): array {
+			$rs = CIBlock::GetList($arOrder, $arFilter);
+			$result = [];
+			while ($ar = $rs->GetNext())
+				$result[] = $ar;
+			return $result;
+		}
+
+		public static function getByID(int $id, bool $onlyStub = false): ?IBlock {
 			$o = null;
 			if ($onlyStub) {
 				$o = new self;

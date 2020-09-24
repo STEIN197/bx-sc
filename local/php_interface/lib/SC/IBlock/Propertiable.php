@@ -6,11 +6,14 @@
 		protected $arProperties;
 
 		public final function getProperties(): array {
-			if (!is_array($this->arProperties))
-				$this->fetchProperties();
-			if (!is_array($this->arProperties))
+			if (is_array($this->arProperties))
+				return $this->arProperties;
+			$this->fetchProperties();
+			if (is_array($this->arProperties)) {
+				Entity::castTypes($this->arProperties);
+			} else {
 				$this->arProperties = [];
-			return $this->arProperties;
+			}
 		}
 
 		public final function setProperties(array $arProperties): void {

@@ -14,11 +14,14 @@
 		}
 
 		public final function getFields(): array {
-			if (!is_array($this->arFields))
-				$this->fetchFields();
-			if (!is_array($this->arFields))
+			if (is_array($this->arFields))
+				return $this->arFields;
+			$this->fetchFields();
+			if (is_array($this->arFields)) {
+				Entity::castTypes($this->arFields);
+			} else {
 				$this->arFields = [];
-			return $this->arFields;
+			}
 		}
 
 		public final function setFields(array $arFields): void {
