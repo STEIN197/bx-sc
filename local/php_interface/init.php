@@ -2,7 +2,10 @@
 	require 'AutoloadMapping.php';
 	$mapping = new AutoloadMapping(__DIR__.DIRECTORY_SEPARATOR.'lib');
 	$mapping->registerClasses();
-	SC\Options::init(2);
+	
+	use SC;
+	Options::init(2);
+
 	trait delete_it {
 
 		// trait Propertiable
