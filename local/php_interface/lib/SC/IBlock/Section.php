@@ -1,11 +1,13 @@
 <?php
 	namespace SC\IBlock;
 
-	use \CIBlock;
 	use \CIBlockSection;
 	use \Exception;
 
-	class Section extends TreeEntity {
+	class Section extends Entity implements EntityContainer {
+
+		use Parentable;
+		use Propertiable;
 
 		protected $iblock;
 
