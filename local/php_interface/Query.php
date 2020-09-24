@@ -8,12 +8,23 @@
 		private $query = [];
 		private static $handler;
 		private static $keywords = [
-			// 'select' => function() {}
+			'BETWEEN' => [
+				'paramCount' => 2,
+				'pattern' => 'BETWEEN %0 AND %1',
+				'excludeKwd' => true
+			],
+			'FROM' => [
+				'patterns' => [
+					'%0',
+					'%0 AS %1'
+				]
+			]
 		];
 
-		public function select(...$args): self {
+		public function select(...$arguments): self {
 			$this->query[] = 'SELECT';
-			$args = self::trim($args);
+			$arguments = array_map('strval', $arguments);
+			$arguments = array_map('self::trim', $arguments);
 			// ...
 			select('*');
 			select('s', 'd');
@@ -54,6 +65,8 @@
 		// В вызов mysql-функции
 		public function __call($method, $arguments): ?self {
 			$ucMethod = strtoupper($method);
+			$arguments = array_map('strval', $arguments);
+			$arguments = array_map('en', $arguments);
 			$arguments = array_map('self::escape', $arguments);
 			$arguments = array_map('self::enclose', $arguments);
 			// TODO: Проверка на колонки
@@ -94,6 +107,8 @@
 		private static function enclose($value): string {
 			
 		}
+
+		private static function arrayMap(array $ar, array $functions): array {}
 	}
 
 	// TODO
