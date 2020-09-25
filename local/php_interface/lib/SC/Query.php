@@ -45,7 +45,7 @@
 			'rlike' => 'RLIKE',
 			'xor' => 'XOR',
 			'bitor' => '|',
-			'bitinv' => '~'
+			'bitinv' => '~',
 		];
 
 		/** @var array */
@@ -94,6 +94,10 @@
 
 		// В вызов mysql-функции
 		public function __call($method, $arguments): ?self {
+			$lcMethod = strtolower($method);
+			if (isset(self::$operators[$lcMethod])) {
+				// return 
+			}
 			$ucMethod = strtoupper($method);
 			$arguments = array_map('strval', $arguments);
 			$arguments = array_map('self::escape', $arguments);
@@ -128,28 +132,29 @@
 			return $value;
 		}
 
-		private static function filter($input, ?string $defaultEntity = null): string {
+		private static function filter($input, ?string $defaultPrefix = null): string {
 			if ($input instanceof self)
 				return (string) $input;
 			if (is_string($input)) {
-				if (in_array($input{0}, self::$prefixes)) {
-					switch ($input{0}) {
+				if (!in_array($input{0}, self::$prefixes) && $defaultPrefix)
+					$input = $defaultPrefix.$input;
+				$prefix = $input{0};
+				$input = substr($input, 1);
+				if (in_array($prefix, self::$prefixes)) {
+					switch ($prefix) {
 						case self::PREFIX_NAME:
-							break;
+							return join('.', array_map(function($value) {
+								return "`{$value}`";
+							}, explode('.', $input)));
 						case self::PREFIX_RAW:
-							break;
+							return $input;
 						case self::PREFIX_STRING:
-							break;
-						default:
-							throw new Exception;
+							return "'{$input}'";
 					}
-				} elseif ($defaultEntity) {
-
-				} else {
-					
 				}
+				return "'{$input}'";
 			}
-			return $input;
+			return self::convertToSQLType($input);
 		}
 
 		private static function escape($value): string {
