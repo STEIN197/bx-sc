@@ -9,14 +9,14 @@
 		private const PREFIX_NAME = '@'; // Переданный параметр - колонка/таблица
 		private const PREFIX_RAW = '&'; // Переданный параметр должен быть вставлен "как есть"
 		private const PREFIX_STRING = '%'; // Форсировать параметр как sql-строку,
-		private const PREFIX_ALL = '*'; // Все колонки
+		// private const PREFIX_ALL = '*'; // Все колонки
 
 		// TODO: Экранировать удвоением. У каждого метода есть метод резолюции по умолчанию, если явно не указано
 		private static $prefixes = [
 			self::PREFIX_NAME,
 			self::PREFIX_RAW,
 			self::PREFIX_STRING,
-			self::PREFIX_ALL,
+			// self::PREFIX_ALL,
 		];
 
 		private static $operators = [
@@ -129,7 +129,7 @@
 		}
 
 		public function __toString(): string {
-			return join(' ', $this->query);
+			return trim(join(' ', $this->query));
 		}
 
 		public static function new(...$arguments): self {
@@ -161,6 +161,8 @@
 						switch ($prefix) {
 							case self::PREFIX_NAME:
 								return join('.', array_map(function($value) {
+									if ($value === '*')
+										return $value;
 									return "`{$value}`";
 								}, explode('.', $input)));
 							case self::PREFIX_RAW:
