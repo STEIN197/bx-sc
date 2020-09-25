@@ -139,8 +139,7 @@
 
 		private static function filter($input, ?string $defaultPrefix = null): string {
 			if ($input instanceof self)
-				return (string) $input;
-				// return '('.((string) $input).')';
+				return '('.((string) $input).')';
 			if (is_string($input)) {
 				if (!in_array($input{0}, self::$prefixes) && $defaultPrefix)
 					$input = $defaultPrefix.$input;
