@@ -4,7 +4,7 @@
 	// TODO
 	class Query {
 
-		private static $handler;
+		public static $handler;
 
 		private const PREFIX_NAME = '@'; // Переданный параметр - колонка/таблица
 		private const PREFIX_RAW = '&'; // Переданный параметр должен быть вставлен "как есть"
@@ -64,7 +64,6 @@
 				if ($argsCount === 1) {
 					if (is_array($arguments[0])) {
 						$select = [];
-						// var_dump($arguments);
 						foreach ($arguments[0] as $key => $value) {
 							if (is_string($key)) {
 								$select[] = self::filter($key, self::PREFIX_NAME).' AS '.self::filter($value, self::PREFIX_NAME);
@@ -86,15 +85,32 @@
 		public function distinct(): self {}
 		public function from(): self {}
 		public function partition(): self {}
+		public function join(): self {}
+		public function as(): self {}
 		public function where(): self {}
 		public function groupBy(): self {}
 		public function having(): self {}
 		public function orderBy(): self {}
-		public function limit(): self {}
+
+		public function limit($a, $b = null): self {
+			$this->query[] = 'LIMIT';
+			$a = self::filter($a);
+			if ($b) {
+				$b = self::filter($b);
+				$this->query[] = "{$a}, {$b}";
+			} else {
+				$this->query[] = $a;
+			}
+			return $this;
+		}
+
+		public function offset($offset): self {
+			$this->query[] = 'OFFSET '.self::filter($offset);
+			return $this;
+		}
 
 		public function query(?string $raw = null): ?array {}
 
-		// В вызов mysql-функции
 		public function __call($method, $arguments): ?self {
 			$lcMethod = strtolower($method);
 			if (isset(self::$operators[$lcMethod])) {
@@ -113,16 +129,11 @@
 		}
 
 		public function __toString(): string {
-			// var_dump($this->query);
 			return join(' ', $this->query);
 		}
 
 		public static function new(...$arguments): self {
 			return new self(...$arguments);
-		}
-
-		public static function setQueryHandler($callback): void {
-			self::$hander = $callback;
 		}
 
 		public static function setQueryEscape($callback) {}
@@ -140,7 +151,7 @@
 		private static function filter($input, ?string $defaultPrefix = null): string {
 			if ($input instanceof self)
 				return '('.((string) $input).')';
-			if (is_string($input)) {
+			if (is_string($input) && strlen($input)) {
 				if (!in_array($input{0}, self::$prefixes) && $defaultPrefix)
 					$input = $defaultPrefix.$input;
 				if (in_array($input{0}, self::$prefixes)) {
@@ -159,7 +170,6 @@
 						}
 					}
 				}
-				return self::convertToSQLType($input);
 			}
 			return self::convertToSQLType($input);
 		}
