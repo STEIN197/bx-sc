@@ -19,6 +19,35 @@
 			self::PREFIX_ALL,
 		];
 
+		private static $operators = [
+			'bitand' => '&',
+			'gt' => '>',
+			'rshift' => '>>',
+			'gte' => '>=',
+			'lt' => '<',
+			'neq' => '!=',
+			'lshift' => '<<',
+			'lte' => '<=',
+			'mod' => '%',
+			'mul' => '*',
+			'plus' => '+',
+			'minus' => '-',
+			'jsonExtract' => '->',
+			'div' => '-',
+			'bitxor' => '^',
+			'and' => 'AND',
+			'is' => 'IS',
+			'isnt' => 'IS NOT',
+			'like' => 'LIKE',
+			'not' => 'NOT',
+			'or' => 'OR',
+			'regexp' => 'REGEXP',
+			'rlike' => 'RLIKE',
+			'xor' => 'XOR',
+			'bitor' => '|',
+			'bitinv' => '~'
+		];
+
 		/** @var array */
 		private $query = [];
 
@@ -102,9 +131,25 @@
 		private static function filter($input, ?string $defaultEntity = null): string {
 			if ($input instanceof self)
 				return (string) $input;
-			if (is_string($input) && in_array($input{0}, self::$prefixes)) {
+			if (is_string($input)) {
+				if (in_array($input{0}, self::$prefixes)) {
+					switch ($input{0}) {
+						case self::PREFIX_NAME:
+							break;
+						case self::PREFIX_RAW:
+							break;
+						case self::PREFIX_STRING:
+							break;
+						default:
+							throw new Exception;
+					}
+				} elseif ($defaultEntity) {
 
+				} else {
+					
+				}
 			}
+			return $input;
 		}
 
 		private static function escape($value): string {
