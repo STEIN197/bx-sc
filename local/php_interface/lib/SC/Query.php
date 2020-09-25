@@ -155,11 +155,11 @@
 							case self::PREFIX_RAW:
 								return $input;
 							case self::PREFIX_STRING:
-								return "'{$input}'";
+								return self::convertToSQLType($input);
 						}
 					}
 				}
-				return "'{$input}'";
+				return self::convertToSQLType($input);
 			}
 			return self::convertToSQLType($input);
 		}
