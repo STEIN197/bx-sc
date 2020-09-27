@@ -128,6 +128,14 @@
 			return $this;
 		}
 
+		public function __get($name) {
+			$matches = null;
+			preg_match_all('/((?:^|[A-Z])[a-z]+)/', $name, $matches);
+			$name = join(' ', $matches[0]);
+			$this->query[] = strtoupper($name);
+			return $this;
+		}
+
 		public function __toString(): string {
 			return trim(join(' ', $this->query));
 		}
@@ -150,7 +158,7 @@
 
 		private static function filter($input, ?string $defaultPrefix = null): string {
 			if ($input instanceof self)
-				return '('.((string) $input).')';
+				return "({$input})";
 			if (is_string($input) && strlen($input)) {
 				if (!in_array($input{0}, self::$prefixes) && $defaultPrefix)
 					$input = $defaultPrefix.$input;
@@ -192,6 +200,10 @@
 			} else {
 				return $value;
 			}
+		}
+
+		private static function makeCommaList(...$arguments): array {
+
 		}
 	}
 
