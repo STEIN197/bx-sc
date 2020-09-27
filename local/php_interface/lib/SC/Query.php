@@ -1,7 +1,8 @@
 <?php
 	namespace SC;
 
-	// TODO
+	// TODO: Смотреть назад по запросу?
+	// TODO: Список кейвордов с массивом действий?
 	class Query {
 
 		public static $handler;
@@ -49,6 +50,11 @@
 			'bitinv' => '~',
 		];
 
+		private static $types = [
+			'int',
+			'text'
+		];
+
 		/** @var array */
 		private $query;
 
@@ -83,32 +89,105 @@
 		}
 
 		public function distinct(): self {}
-		public function from(): self {}
-		public function partition(): self {}
-		public function join(): self {}
-		public function as(): self {}
-		public function where(): self {}
-		public function groupBy(): self {}
-		public function having(): self {}
-		public function orderBy(): self {}
 
-		public function limit($a, $b = null): self {
-			$this->query[] = 'LIMIT';
-			$a = self::filter($a);
-			if ($b) {
-				$b = self::filter($b);
-				$this->query[] = "{$a}, {$b}";
-			} else {
-				$this->query[] = $a;
+		public function from(...$arguments): self {
+			$this->query[] = 'FROM';
+			$argsCount = sizeof($arguments);
+			// FIXME
+			if ($argsCount) {
+				$result = [];
+				if (is_array($arguments[0])) {
+					foreach ($arguments[0] as $key => $value) {
+						if (is_string($key)) {
+							$result[] = self::filter($key, self::PREFIX_NAME).' AS '.self::filter($value, self::PREFIX_NAME);
+						} elseif ($value instanceof self) {
+							$result[] = '('.self::filter($value, self::PREFIX_NAME).')';
+						} else {
+							$result[] = self::filter($value, self::PREFIX_NAME);
+						}
+					}
+				} else {
+					foreach ($arguments as $arg) {
+						if ($arg instanceof self)
+							$result[] = '('.self::filter($arg, self::PREFIX_NAME).')';
+						else
+							$result[] = self::filter($arg, self::PREFIX_NAME);
+					}
+				}
+				$this->query[] = join(', ', $result);
 			}
 			return $this;
 		}
 
-		public function offset($offset): self {
-			$this->query[] = 'OFFSET '.self::filter($offset);
+		public function partition(): self {}
+		public function join(): self {}
+
+		// TODO
+		public function where($cond): self {
+			$this->query[] = 'WHERE';
+			if (is_string($cond)) {
+				$this->query[] = self::filter($cond, self::PREFIX_NAME);
+			} elseif (is_array($cond)) {
+				$result = [];
+				foreach ($cond as $key => $value) {
+					if (is_string($key)) {
+						$result[] = self::filter($key, self::PREFIX_NAME).' = '.self::filter($value);
+					} elseif ($value instanceof self) {
+						$result[] = '('.self::filter($value).')';
+					} else {
+						$result[] = self::filter($value);
+					}
+				}
+				$this->query[] = join(' AND ', $result);
+			}
+			return $this;
+		}
+		public function groupBy(): self {}
+		public function having(): self {}
+		public function orderBy(): self {}
+
+		public function limit(int $a, ?int $b = null): self {
+			$this->query[] = 'LIMIT';
+			if ($b)
+				$this->query[] = "{$a}, {$b}";
+			else
+				$this->query[] = $a;
 			return $this;
 		}
 
+		public function offset(int $offset): self {
+			$this->query[] = "OFFSET {$offset}";
+			return $this;
+		}
+
+		public function id(string $id): self {
+			$this->query[] = self::filter($id, self::PREFIX_NAME);
+			return $this;
+		}
+
+		public function as(string $as): self {
+			$this->query[] = 'AS';
+			$this->query[] = self::filter($as, self::PREFIX_NAME);
+			return $this;
+		}
+
+		public function table(...$arguments): self {
+			$this->query[] = 'TABLE';
+			$argsCount = sizeof($arguments);
+			if ($argsCount >= 2 && is_array($arguments[1])) {
+				$this->query[] = self::filter($arguments[0], self::PREFIX_NAME);
+				$this->query[] = '('.join(', ', $arguments[1]).')';
+			} else {
+				$tblList = [];
+				foreach ($arguments as $tbl) {
+					$tblList[] = self::filter($tbl, self::PREFIX_NAME);
+				}
+				$this->query[] = join(', ', $tblList);
+			}
+			return $this;
+		}
+
+		// TODO
 		public function query(?string $raw = null): ?array {}
 
 		public function __call($method, $arguments): ?self {
@@ -146,6 +225,13 @@
 
 		public static function setQueryEscape($callback) {}
 
+		// private static function processList(array $list, string $delimiter, ?string $considerKeyAs = null, ?string $considerValueAs = null): array {
+		// 	$result = [];
+		// 	foreach ($list as $k => $v)
+		// 		$result[] = self::filter($k, $considerKeyAs).$delimiter.self::filter($v, $considerValueAs);
+		// 	return $result;
+		// }
+
 		private static function convertToSQLType($value): string {
 			if (is_string($value))
 				return '\''.self::escape($value).'\'';
@@ -158,7 +244,7 @@
 
 		private static function filter($input, ?string $defaultPrefix = null): string {
 			if ($input instanceof self)
-				return "({$input})";
+				return (string) $input;
 			if (is_string($input) && strlen($input)) {
 				if (!in_array($input{0}, self::$prefixes) && $defaultPrefix)
 					$input = $defaultPrefix.$input;
@@ -200,10 +286,6 @@
 			} else {
 				return $value;
 			}
-		}
-
-		private static function makeCommaList(...$arguments): array {
-
 		}
 	}
 
