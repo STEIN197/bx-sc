@@ -144,7 +144,40 @@
 		}
 		public function groupBy(): self {}
 		public function having(): self {}
-		public function orderBy(): self {}
+
+		public function orderBy($a, $direction = null): self {
+			$this->query[] = 'ORDER BY';
+			if (is_array($a)) {
+				$result = [];
+				foreach ($a as $key => $value) {
+					if (is_string($key)) {
+						$direction = $value;
+						if ($direction === null)
+							$direction = 'ASC';
+						if (is_string($direction))
+							$direction = strtoupper($direction);
+						elseif (is_bool($direction))
+							$direction = $direction ? 'ASC' : 'DESC';
+						$result[] = self::filter($key, self::PREFIX_NAME)." {$direction}";
+					} elseif ($value instanceof self) {
+						$result[] = "{$value} ASC";
+					} else {
+						$result[] = self::filter($value, self::PREFIX_NAME).' ASC';
+					}
+				}
+				$this->query[] = join(', ', $result);
+			} else {
+				$a = self::filter($a, self::PREFIX_NAME);
+				if ($direction === null)
+					$direction = 'ASC';
+				if (is_string($direction))
+					$direction = strtoupper($direction);
+				elseif (is_bool($direction))
+					$direction = $direction ? 'ASC' : 'DESC';
+				$this->query[] = "{$a} {$direction}";
+			}
+			return $this;
+		}
 
 		public function limit(int $a, ?int $b = null): self {
 			$this->query[] = 'LIMIT';
