@@ -113,6 +113,8 @@
 			$isNum = $property->getField('PROPERTY_TYPE') === 'N';
 			$clauseSelect = $clauseFrom = $clauseWhere = '';
 			$clauseWhere = ["b_iblock_element.IBLOCK_ID = {$this->getID()}"];
+			if (!$includeInactive)
+				$clauseWhere[] = "b_iblock_element.ACTIVE = 'Y'";
 			// Свойства в общей таблице
 			if ($this->getField('VERSION') == 1) {
 				if ($isNum) {

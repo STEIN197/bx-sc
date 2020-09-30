@@ -71,10 +71,13 @@
 		 * @param bool $includeInactive Включать в выборку неактивные элементы.
 		 * @param array $arFilter Доп. фильтрация для выборки значений.
 		 */
-		public function getDistinctValues(array $arProperty, bool $includeInactive = true, array $arFilter = null): array {
+		public function getDistinctValues($property, array $arFilter = null, bool $includeInactive = false): ?array {
 			global $DB;
+			if (!$this->getID())
+				return null;
+			$property = Property::make($property);
+			$q = $this->getDistinctValuesQuery($property, $arFilter, $includeInactive);
 			$result = [];
-			$q = $this->getDistinctValuesQuery($arProperty, $includeInactive, $arFilter);
 			$rs = $DB->Query($q);
 			while ($ar = $rs->Fetch())
 				$result[] = $ar['VALUE'];
@@ -82,90 +85,108 @@
 			return $result;
 		}
 
-		public function getElements(?array $arOrder = ['SORT' => 'ASC'], ?array $arFilter = null, ?array $arGroupBy = null, ?array $arNavStartParams = null, ?array $arSelect = null): array {
-			$arFilter = array_merge($arFilter, [
-				'IBLOCK_ID' => $this->getFields()['IBLOCK_ID'],
-				'SECTION_ID' => $this->getFields()['ID'],
-			]);
-			$rs = CIBlockElement::GetList($arOrder, $arFilter, $arGroupBy, $arNavStartParams, $arSelect);
-			$result = [];
-			while ($o = $rs->GetNextElement()) {
-				$f = $o->GetFields();
-				$f['PROPERTIES'] = $o->GetProperties();
-				$result[] = $f;
-			}
-			return $result;
-		}
-
-		public function getDistinctValuesQuery(array $arProperty, bool $includeInactive = true, array $arFilter = null): string {
-			$arIBlock = $this->getIBlock()->getFields();
-			$arSection = $this->getFields();
+		public function getDistinctValuesQuery(Property $property, ?array $arFilter = null, bool $includeInactive = false): string {
+			$isMultiple = $property->getField('MULTIPLE') === 'Y';
+			$isNum = $property->getField('PROPERTY_TYPE') === 'N';
+			$clauseSelect = $clauseFrom = '';
+			$clauseWhere = [
+				"b_iblock_element.IBLOCK_ID = {$this->getField('IBLOCK_ID')}",
+				"b_iblock_section_element.IBLOCK_SECTION_ID = {$this->getID()}"
+			];
+			if (!$includeInactive)
+				$clauseWhere[] = "b_iblock_element.ACTIVE = 'Y'";
+			$iblock = $this->getIBlock();
+			$arProperties = $iblock->getProperties();
 			// Свойства в общей таблице
-			$clauseWhere = 'b_iblock_section_element.IBLOCK_SECTION_ID IN ('.join(',', $this->getSubsectionsIDs()).')';
-			if ($arIBlock['VERSION'] == 1) {
-				if ($arProperty['PROPERTY_TYPE'] === 'N')
+			if ($iblock->getField('VERSION') == 1) {
+				if ($isNum) {
 					$clauseSelect = "DISTINCT TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM b_iblock_element_property.VALUE_NUM)) AS VALUE";
-				else
+				} else {
 					$clauseSelect = "DISTINCT b_iblock_element_property.VALUE";
-				$clauseFrom = "b_iblock_section_element LEFT JOIN b_iblock_element ON b_iblock_section_element.IBLOCK_ELEMENT_ID = b_iblock_element.ID LEFT JOIN b_iblock_element_property ON b_iblock_section_element.IBLOCK_ELEMENT_ID = b_iblock_element_property.IBLOCK_ELEMENT_ID";
-				$clauseWhere .= " AND VALUE IS NOT NULL";
-				if (!$includeInactive)
-					$clauseWhere .= ' AND b_iblock_element.ACTIVE = \'Y\'';
-				// TODO: Реализовать $arFilter
+				}
+				$clauseFrom = "b_iblock_element LEFT JOIN b_iblock_element_property ON b_iblock_element.ID = b_iblock_element_property.IBLOCK_ELEMENT_ID";
+				$clauseWhere[] = "b_iblock_element_property.VALUE IS NOT NULL";
+				if ($arFilter) {
+					foreach ($arFilter as $code => $value) {
+						$arProp = $arProperties[$code];
+						$clauseFrom .= " LEFT JOIN b_iblock_element_property AS property_{$code} ON b_iblock_element.ID = property_{$code}.IBLOCK_ELEMENT_ID";
+						$clauseWhere[] = "property_{$code}.IBLOCK_PROPERTY_ID = {$arProp['ID']}";
+						if ($arProp['PROPERTY_TYPE'] === 'N')
+							$clauseWhere[] = "property_{$code}.VALUE_NUM = {$value}";
+						else
+							$clauseWhere[] = "property_{$code}.VALUE = '{$value}'";
+					}
+				}
 			// Свойства в отдельной таблице
 			} else {
-				if ($arProperty['MULTIPLE'] === 'Y') {
-					if ($arProperty['PROPERTY_TYPE'] === 'N')
-						$clauseSelect = "DISTINCT TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM b_iblock_element_prop_m{$arIBlock['ID']}.VALUE_NUM)) AS VALUE";
-					else
-						$clauseSelect = "DISTINCT b_iblock_element_prop_m{$arIBlock['ID']}.VALUE";
-					$clauseFrom = "b_iblock_section_element LEFT JOIN b_iblock_element ON b_iblock_section_element.IBLOCK_ELEMENT_ID = b_iblock_element.ID LEFT JOIN b_iblock_element_prop_m{$arIBlock['ID']} ON b_iblock_section_element.IBLOCK_ELEMENT_ID = b_iblock_element_prop_m{$arIBlock['ID']}.IBLOCK_ELEMENT_ID";
-					$clauseWhere .= " AND b_iblock_element_prop_m{$arIBlock['ID']}.VALUE IS NOT NULL AND b_iblock_element_prop_m{$arIBlock['ID']}.IBLOCK_PROPERTY_ID = {$arProperty['ID']}";
-					if ($arFilter) {
-						$clauseFrom .= " LEFT JOIN b_iblock_element_prop_s{$arIBlock['ID']} ON b_iblock_section_element.IBLOCK_ELEMENT_ID = b_iblock_element_prop_s{$arIBlock['ID']}.IBLOCK_ELEMENT_ID";
+				if ($isMultiple) {
+					$valuesTableName = "b_iblock_element_prop_m{$iblock->getID()}";
+					if ($isNum) {
+						$clauseSelect = "DISTINCT TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM {$valuesTableName}.VALUE_NUM)) AS VALUE";
+					} else {
+						$clauseSelect = "DISTINCT {$valuesTableName}.VALUE";
 					}
+					$clauseWhere[] = "{$valuesTableName}.VALUE IS NOT NULL";
 				} else {
-					if ($arProperty['PROPERTY_TYPE'] === 'N')
-						$clauseSelect = "DISTINCT TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM PROPERTY_{$arProperty['ID']})) AS VALUE";
-					else
-						$clauseSelect = "DISTINCT PROPERTY_{$arProperty['ID']} AS VALUE";
-					$clauseFrom = "b_iblock_element_prop_s{$arIBlock['ID']} RIGHT JOIN b_iblock_section_element USING(IBLOCK_ELEMENT_ID)";
-					$clauseWhere .= " AND PROPERTY_{$arProperty['ID']} IS NOT NULL";
+					$valuesTableName = "b_iblock_element_prop_s{$iblock->getID()}";
+					if ($isNum) {
+						$clauseSelect = "DISTINCT TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM {$valuesTableName}.PROPERTY_{$property->getID()})) AS VALUE";
+					} else {
+						$clauseSelect = "DISTINCT {$valuesTableName}.PROPERTY_{$property->getID()} AS VALUE";
+					}
+					$clauseWhere[] = "{$valuesTableName}.PROPERTY_{$property->getID()} IS NOT NULL";
 				}
+				$clauseFrom = "b_iblock_element LEFT JOIN {$valuesTableName} ON b_iblock_element.ID = {$valuesTableName}.IBLOCK_ELEMENT_ID";
 				if ($arFilter) {
-					$arProperties = $this->getIBlock()->getProperties();
 					foreach ($arFilter as $code => $value) {
-						$clauseWhere .= " AND PROPERTY_{$arProperties[$code]['ID']} = ".($arProperties[$code]['PROPERTY_TYPE'] === 'N' ? $value : "'{$value}'");
+						$arProp = $arProperties[$code];
+						if ($arProp['MULTIPLE'] === 'Y') {
+							$clauseFrom .= " LEFT JOIN b_iblock_element_prop_m{$iblock->getID()} AS property_{$code} ON b_iblock_element.ID = property_{$code}.IBLOCK_ELEMENT_ID";
+							$clauseWhere[] = "property_{$code}.IBLOCK_PROPERTY_ID = {$arProp['ID']}";
+							if ($arProp['PROPERTY_TYPE'] === 'N')
+								$clauseWhere[] = "property_{$code}.VALUE_NUM = {$value}";
+							else
+								$clauseWhere[] = "property_{$code}.VALUE = '{$value}'";
+						} else {
+							if ($arProp['PROPERTY_TYPE'] === 'N')
+								$clauseWhere[] = "b_iblock_element_prop_s{$iblock->getID()}.PROPERTY_{$arProp['ID']} = {$value}";
+							else
+								$clauseWhere[] = "b_iblock_element_prop_s{$iblock->getID()}.PROPERTY_{$arProp['ID']} = '{$value}'";
+						}
 					}
 				}
 			}
+			$clauseFrom .= " LEFT JOIN b_iblock_section_element ON b_iblock_element.ID = b_iblock_section_element.IBLOCK_ELEMENT_ID";
+			$clauseWhere = join(' AND ', $clauseWhere);
 			return "SELECT {$clauseSelect} FROM {$clauseFrom} WHERE {$clauseWhere}";
 		}
 
-		private function getSubsectionsIDs(): array {
-			$arIBlock = $this->getIBlock()->getFields();
-			$arSection = $this->getFields();
-			$rsTree = CIBlockSection::GetList(
-				array(), array(
-					'IBLOCK_ID' => $arIBlock['ID'],
-					'ACTIVE' => 'Y',
-					'>=LEFT_MARGIN' => $arSection['LEFT_MARGIN'],
-					'<=RIGHT_MARGIN' => $arSection['RIGHT_MARGIN']
-				), false, array(
-					'ID'
-				)
-			);
+		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+			$rs = CIBlockSection::GetList($arOrder, $arFilter, false, $arSelect, $arNav);
 			$result = [];
-			while ($ar = $rsTree->GetNext())
-				$result[] = $ar['ID'];
+			while ($ar = $rs->GetNext())
+				$result[] = $ar;
 			return $result;
 		}
 
-		public static function getByID(int $id): ?self {
-			if (!CIBlockSection::GetByID($id)->GetNext())
-				return null;
-			$section = new self;
-			$section->id = $id;
-			return $section;
+		public static function getByID(int $id, bool $onlyStub = false): ?Section {
+			$o = null;
+			if ($onlyStub) {
+				$o = new self;
+				$o->id = $id;
+			} else {
+				$arFields = CIBlockSection::GetByID($id)->GetNext();
+				if ($arFields)
+					$o = self::wrap($arFields);
+			}
+			return $o;
+		}
+
+		public function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+			return Element::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->getField('IBLOCK_ID'), 'SECTION_ID' => $this->id]), $arOrder, $arSelect, $arNav);
+		}
+
+		public function getSections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+			return Section::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->getField('IBLOCK_ID'), 'SECTION_ID' => $this->id]), $arOrder, $arSelect, $arNav);
 		}
 	}

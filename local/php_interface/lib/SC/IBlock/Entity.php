@@ -61,6 +61,15 @@
 
 		abstract public static function getByID(int $id, bool $onlyStub = false);
 
+		public static function getByCode(string $code) {
+			$list = static::getList([
+				'CODE' => $code
+			]);
+			if ($list)
+				return $list[0];
+			return null;
+		}
+
 		public static function wrap(array $arFields) {
 			$o = new static($arFields);
 			$o->id = (int) $arFields['ID'];
@@ -70,6 +79,8 @@
 		public static final function make($entity) {
 			if (is_int($entity) || is_string($entity) && preg_match('/^\d+$/', $entity))
 				return static::getByID((int) $entity, true);
+			if (is_string($entity))
+				return static::getByCode($entity);
 			if (is_array($entity) && $entity['ID'])
 				return static::wrap($entity);
 			if ($entity instanceof self)

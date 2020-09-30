@@ -37,12 +37,12 @@
 			$this->arFields = CIBlockElement::GetByID($this->id)->GetNext();
 		}
 
-		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], array $arSelect = [], ?array $arNav = null): array {
+		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
 			$rs = CIBlockElement::GetList($arOrder, $arFilter, false, $arNav, $arSelect);
 			$result = [];
 			while ($o = $rs->GetNextElement()) {
 				$f = $o->GetFields();
-				$f['PROPERTIES'] = $f->GetProperties();
+				$f['PROPERTIES'] = $o->GetProperties();
 				$result[] = $f;
 			}
 			return $result;
