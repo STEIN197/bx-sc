@@ -31,5 +31,20 @@
 			return $old;
 		}
 
+		public function getSEO(?string $code) {
+			if ($this instanceof IBlock)
+				$ipropValues = new \Bitrix\Iblock\InheritedProperty\IBlockValues($this->id, $this->id);
+			elseif ($this instanceof Section)
+				$ipropValues = new \Bitrix\Iblock\InheritedProperty\SectionValues($this->getField('IBLOCK_ID'), $this->id);
+			elseif ($this instanceof Element)
+				$ipropValues = new \Bitrix\Iblock\InheritedProperty\ElementValues($this->getField('IBLOCK_ID'), $this->id);
+			else
+				throw new \Exception('Unknown entity type');
+			if ($code)
+				return $ipropValues->getValue($code);
+			else
+				return $ipropValues->getValues();
+		}
+
 		abstract protected function fetchProperties(): void;
 	}
