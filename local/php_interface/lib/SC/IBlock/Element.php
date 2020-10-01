@@ -68,8 +68,14 @@
 				$this->arProperties[$ar['CODE']] = $ar;
 		}
 
-		// TODO
-		public function getParents(): array {}
+		public function getParents(): array {
+			global $DB;
+			$rs = $DB->Query("SELECT IBLOCK_SECTION_ID FROM b_iblock_section_element WHERE IBLOCK_ELEMENT_ID = {$this->id}");
+			$result = [];
+			while ($ar = $rs->Fetch())
+				$result[] = (int) $ar['IBLOCK_SECTION_ID'];
+			return $result;
+		}
 
 		// TODO
 		public function setParents(): array {}
