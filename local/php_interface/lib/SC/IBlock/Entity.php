@@ -26,9 +26,8 @@
 		}
 
 		public final function setFields(array $arFields): void {
-			$this->arFields = array_merge($this->getFields(), $arFields);
-			if ($this->id && isset($arFields['ID']) && $this->id != $arFields['ID'])
-				$this->id = (int) $arFields['ID'];
+			foreach ($arFields as $key => $value)
+				$this->setField($key, $value);
 		}
 
 		public final function getField(string $key) {
@@ -40,6 +39,8 @@
 			$this->arFields[$key] = $value;
 			if ($this->id && $key === 'ID' && $this->id != $value)
 				$this->id = (int) $value;
+			if ($this->parent && $key === 'IBLOCK_SECTION_ID' && $this->parent->getID() != $value)
+				$this->parent = null;
 			return $old;
 		}
 
