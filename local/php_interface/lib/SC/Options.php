@@ -2,10 +2,6 @@
 
 	namespace SC;
 
-	use \CModule;
-	use \CIBlockElement;
-	use \CFile;
-
 	final class Options {
 
 		private static $instance;
@@ -20,20 +16,17 @@
 		}
 
 		private function setup(): void {
-			CModule::includeModule('iblock');
-			$rsElements = CIBlockElement::GetList(
-				array(), array(
-					'ACTIVE' => 'Y',
-					'IBLOCK_ID' => $this->iblockID,
-					'SECTION_ID' => false
-				)
-			);
-			while ($elt = $rsElements->GetNextElement()) {
-				$f = $elt->GetFields();
-				$f['PREVIEW_PICTURE'] = CFile::GetFileArray($f['PREVIEW_PICTURE']);
-				$f['DETAIL_PICTURE'] = CFile::GetFileArray($f['DETAIL_PICTURE']);
-				$this->options[$f['CODE']] = $f;
-				$this->options[$f['CODE']]['PROPERTIES'] = $elt->GetProperties();
+			if (!\CModule::includeModule('iblock'))
+				throw new \Exception('Can\'t load module \'iblock\'');
+			$arElements = Element::getList([
+				'ACTIVE' => 'Y',
+				'IBLOCK_ID' => $this->iblockID,
+				'SECTION_ID' => false
+			]);
+			foreach ($arElements as &$element) {
+				$element['PREVIEW_PICTURE'] = \CFile::GetFileArray($element['PREVIEW_PICTURE']);
+				$element['DETAIL_PICTURE'] = \CFile::GetFileArray($element['DETAIL_PICTURE']);
+				$this->options[$element['CODE']] = $element;
 			}
 		}
 		
