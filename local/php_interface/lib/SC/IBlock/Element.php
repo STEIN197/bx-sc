@@ -73,15 +73,36 @@
 
 		public function getParents(): array {
 			global $DB;
-			$rs = $DB->Query("SELECT IBLOCK_SECTION_ID FROM b_iblock_section_element WHERE IBLOCK_ELEMENT_ID = {$this->id}");
+			$q = "SELECT b_iblock_section.* FROM b_iblock_section_element LEFT JOIN b_iblock_section ON b_iblock_section_element.IBLOCK_SECTION_ID = b_iblock_section.ID WHERE IBLOCK_ELEMENT_ID = {$this->id}";
+			$rs = $DB->Query($q);
 			$result = [];
-			while ($ar = $rs->Fetch())
-				$result[] = (int) $ar['IBLOCK_SECTION_ID'];
+			while ($arFields = $rs->Fetch())
+				$result[] = Section::wrap($arFields);
 			return $result;
 		}
 
-		// TODO
-		public function setParents(): array {}
+		public function setParents(array $parents): void {
+			global $DB;
+			$parentsToAdd = [];
+			foreach ($parents as $parent) {
+				$parent = Section::make($parent);
+				if (!$this->parentExists($parent->getID()))
+					$parentsToAdd[] = $parent->getID();
+			}
+			if ($parentsToAdd) {
+				$q = "INSERT INTO b_iblock_section_element (IBLOCK_SECTION_ID, IBLOCK_ELEMENT_ID) VALUES ";
+				$q .= join(', ', array_map(function($sectionID) {
+					return "({$sectionID}, {$this->id})";
+				}, $parentsToAdd));
+				$DB->Query($q);
+			}
+		}
+
+		private function parentExists(int $parentID): bool {
+			global $DB;
+			$rs = $DB->Query("SELECT COUNT(*) AS CNT FROM b_iblock_section_element WHERE IBLOCK_SECTION_ID = {$parentID} AND IBLOCK_ELEMENT_ID = {$this->id}")->Fetch();
+			return $rs && $rs['CNT'] && $rs['CNT'] > 0;
+		}
 
 		public static function wrap(array $arFields): Element {
 			$arProperties = @$arFields['PROPERTIES'];
