@@ -2,6 +2,7 @@
 	namespace SC\IBlock;
 
 	use \CIBlockElement;
+	use \CFile;
 
 	class Element extends Entity {
 
@@ -35,6 +36,8 @@
 
 		protected function fetchFields(): void {
 			$this->arFields = CIBlockElement::GetByID($this->id)->GetNext();
+			$this->arFields['PREVIEW_PICTURE'] = CFile::GetFileArray($this->arFields['PREVIEW_PICTURE']);
+			$this->arFields['DETAIL_PICTURE'] = CFile::GetFileArray($this->arFields['DETAIL_PICTURE']);
 		}
 
 		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {

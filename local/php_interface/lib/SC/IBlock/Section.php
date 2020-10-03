@@ -41,6 +41,7 @@
 
 		protected function fetchFields(): void {
 			$this->arFields = CIBlockSection::GetByID($this->id)->GetNext();
+			$this->arFields['PICTURE'] = \CFile::GetFileArray($this->arFields['PICTURE']);
 		}
 
 		protected function fetchProperties(): void {
