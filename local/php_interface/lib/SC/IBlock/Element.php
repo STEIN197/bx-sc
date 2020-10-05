@@ -9,6 +9,11 @@
 		use Parentable;
 		use Propertiable;
 
+		public function __construct(array $arFields, ?array $arProperties = []) {
+			$this->arFields = $arFields;
+			$this->arProperties = $arProperties;
+		}
+
 		public function save(): void {
 			$celement = new CIBlockElement;
 			$arFields = array_merge($this->arFields, ['PROPERTY_VALUES' => $this->getProperties()]);
