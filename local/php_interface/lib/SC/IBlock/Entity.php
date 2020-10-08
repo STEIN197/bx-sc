@@ -65,6 +65,8 @@
 		public static function wrap(array $arFields) {
 			$o = new static($arFields);
 			$o->id = (int) $arFields['ID'];
+			if (!$o->id)
+				throw new Exception('ID is not present');
 			return $o;
 		}
 

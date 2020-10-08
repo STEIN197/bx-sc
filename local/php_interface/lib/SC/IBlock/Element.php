@@ -70,10 +70,8 @@
 		}
 		
 		protected function fetchProperties(): void {
-			$this->arProperties = [];
-			$rs = CIBlockElement::GetProperty($this->id, $this->getField('IBLOCK_ID'));
-			while ($ar = $rs->Fetch())
-				$this->arProperties[$ar['CODE']] = $ar;
+			if ($this->id)
+				$this->arProperties = CIBlockElement::GetByID($this->id)->GetNextElement()->GetProperties();
 		}
 
 		public function getParents(): array {
