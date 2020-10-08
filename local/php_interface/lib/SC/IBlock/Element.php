@@ -46,30 +46,6 @@
 			$this->arFields['DETAIL_PICTURE'] = CFile::GetFileArray($this->arFields['DETAIL_PICTURE']);
 		}
 
-		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
-			$rs = CIBlockElement::GetList($arOrder, $arFilter, false, $arNav, $arSelect);
-			$result = [];
-			while ($o = $rs->GetNextElement()) {
-				$f = $o->GetFields();
-				$f['PROPERTIES'] = $o->GetProperties();
-				$result[] = $f;
-			}
-			return $result;
-		}
-
-		public static function getByID(int $id, bool $onlyStub = false): ?Element {
-			$o = null;
-			if ($onlyStub) {
-				$o = new self;
-				$o->id = $id;
-			} else {
-				$arFields = CIBlockElement::GetByID($id)->GetNext();
-				if ($arFields)
-					$o = self::wrap($arFields);
-			}
-			return $o;
-		}
-		
 		protected function fetchProperties(): void {
 			if ($this->id)
 				$this->arProperties = CIBlockElement::GetByID($this->id)->GetNextElement()->GetProperties();
@@ -106,6 +82,30 @@
 			global $DB;
 			$rs = $DB->Query("SELECT COUNT(*) AS CNT FROM b_iblock_section_element WHERE IBLOCK_SECTION_ID = {$parentID} AND IBLOCK_ELEMENT_ID = {$this->id}")->Fetch();
 			return $rs && $rs['CNT'] && $rs['CNT'] > 0;
+		}
+
+		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+			$rs = CIBlockElement::GetList($arOrder, $arFilter, false, $arNav, $arSelect);
+			$result = [];
+			while ($o = $rs->GetNextElement()) {
+				$f = $o->GetFields();
+				$f['PROPERTIES'] = $o->GetProperties();
+				$result[] = $f;
+			}
+			return $result;
+		}
+
+		public static function getByID(int $id, bool $onlyStub = false): ?Element {
+			$o = null;
+			if ($onlyStub) {
+				$o = new self;
+				$o->id = $id;
+			} else {
+				$arFields = CIBlockElement::GetByID($id)->GetNext();
+				if ($arFields)
+					$o = self::wrap($arFields);
+			}
+			return $o;
 		}
 
 		public static function wrap(array $arFields): Element {
