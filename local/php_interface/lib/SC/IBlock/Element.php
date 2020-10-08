@@ -3,6 +3,7 @@
 
 	use \CIBlockElement;
 	use \CFile;
+	use \Exception;
 
 	class Element extends Entity {
 
@@ -108,10 +109,9 @@
 		}
 
 		public static function wrap(array $arFields): Element {
-			$arProperties = @$arFields['PROPERTIES'];
-			unset($arFields['PROPERTIES']);
-			$o = new static($arFields, $arProperties);
-			$o->id = (int) $arFields['ID'];
+			$o = parent::wrap($arFields);
+			$o->arProperties = @$o->arFields['PROPERTIES'];
+			unset($o->arFields['PROPERTIES']);
 			return $o;
 		}
 	}
