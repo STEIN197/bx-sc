@@ -1,6 +1,8 @@
 <?php
 	namespace SC\IBlock;
 
+	use \Exception;
+
 	abstract class Entity {
 
 		protected $id;
@@ -8,8 +10,8 @@
 
 		public function getIBlock(): ?IBlock {
 			static $iblock = null;
-			if (!$iblock && $this->arFields['IBLOCK_ID'])
-				$iblock = IBlock::getByID((int) $this->arFields['IBLOCK_ID']);
+			if (!$iblock && $this->getField('IBLOCK_ID'))
+				$iblock = IBlock::getByID((int) $this->getField('IBLOCK_ID'));
 			return $iblock;
 		}
 
