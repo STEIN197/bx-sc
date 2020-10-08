@@ -18,7 +18,8 @@
 		}
 
 		public final function setProperties(array $arProperties): void {
-			$this->arProperties = array_merge($this->getProperties(), $arProperties);
+			foreach ($arProperties as $k => $v)
+				$this->setProperty($k, $v);
 		}
 
 		public final function getProperty(string $key) {
@@ -31,6 +32,11 @@
 			return $old;
 		}
 
+		/**
+		 * @param string $code
+		 * @return string|array
+		 * @throws \Exception
+		 */
 		public function getSEO(?string $code) {
 			if ($this instanceof IBlock)
 				$ipropValues = new \Bitrix\Iblock\InheritedProperty\IBlockValues($this->id, $this->id);
