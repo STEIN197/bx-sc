@@ -72,12 +72,16 @@
 			return $o;
 		}
 
+		/**
+		 * @param mixed $entity
+		 * @return static|null
+		 */
 		public static final function make($entity) {
 			if (is_int($entity) || is_string($entity) && preg_match('/^\d+$/', $entity))
 				return static::getByID((int) $entity, true);
 			if (is_array($entity) && $entity['ID'])
 				return static::wrap($entity);
-			if ($entity instanceof self)
+			if ($entity instanceof static)
 				return $entity;
 			return null;
 		}
