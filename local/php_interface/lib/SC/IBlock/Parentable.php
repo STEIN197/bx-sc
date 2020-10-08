@@ -16,9 +16,13 @@
 
 		public function setParent($parent): ?Section {
 			$old = $this->getParent();
-			$this->parent = Section::make($parent);
-			if ($this->parent)
-				$this->arFields['IBLOCK_SECTION_ID'] = $this->parent->getID();
+			if ($parent === null) {
+				$this->arFields['IBLOCK_SECTION_ID'] = false;
+			} else {
+				$this->parent = Section::make($parent);
+				if ($this->parent)
+					$this->arFields['IBLOCK_SECTION_ID'] = $this->parent->getID();
+			}
 			return $old;
 		}
 	}
