@@ -78,6 +78,20 @@
 			}
 		}
 
+		public function deleteParents(array $parents): void {
+			global $DB;
+			$deleteIDs = [];
+			foreach ($parents as $parent) {
+				$parent = Section::make($parent);
+				if (!$parent)
+					throw new Exception('Passed parent is null');
+				$deleteIDs[] = $parent->getID();
+				if ($parent->getID() == $this->getField('IBLOCK_SECTION_ID'))
+					$this->setParent(null);
+			}
+			$DB->Query("DELETE FROM b_iblock_section_element WHERE IBLOCK_SECTION_ID IN (".join(', ', $deleteIDs).") AND IBLOCK_ELEMENT_ID = {$this->id}");
+		}
+
 		private function parentExists(int $parentID): bool {
 			global $DB;
 			$rs = $DB->Query("SELECT COUNT(*) AS CNT FROM b_iblock_section_element WHERE IBLOCK_SECTION_ID = {$parentID} AND IBLOCK_ELEMENT_ID = {$this->id}")->Fetch();
