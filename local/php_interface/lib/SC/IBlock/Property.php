@@ -34,6 +34,20 @@
 			}
 		}
 
+		public function isNumeric(): bool {
+			$type = $this->getField('PROPERTY_TYPE');
+			if (!$type)
+				throw new Exception('Property does not have any type');
+			return $type === 'N';
+		}
+
+		public function isMultiple(): bool {
+			$multiple = $this->getField('MULTIPLE');
+			if (!$multiple)
+				throw new Exception('Property does not have multiplicity field');
+			return $multiple === 'Y';
+		}
+
 		protected function fetchFields(): void {
 			$this->arFields = CIBlockProperty::GetByID($this->id)->GetNext();
 		}
