@@ -74,7 +74,7 @@
 
 		/**
 		 * @param mixed $entity
-		 * @return static|null
+		 * @return static
 		 */
 		public static final function make($entity) {
 			if (is_int($entity) || is_string($entity) && preg_match('/^\d+$/', $entity))
@@ -83,7 +83,7 @@
 				return static::wrap($entity);
 			if ($entity instanceof static)
 				return $entity;
-			return null;
+			throw new Exception("Cannot make entity from input: {$entity}");
 		}
 
 		public static final function castTypes(array &$arFields): void {
