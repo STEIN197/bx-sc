@@ -141,6 +141,7 @@
 				}
 				$ar['existingSections'] = $this->getExistingSections((int) $id);
 			}
+			unset($id, $ar);
 
 			foreach ($this->retrieveElements() as $arElement) {
 				$element = Element::wrap($arElement);
@@ -158,7 +159,7 @@
 					$element->setParents([$ar['existingSections'][$valueCode]]);
 				}
 				$propValues = [];
-				$mainExistingSections = &$this->arSections[(string) $this->mainSection['section']->getID()]['existingSections'];
+				$mainExistingSections = $this->arSections[(string) $this->mainSection['section']->getID()]['existingSections'];
 				foreach ($this->mainSection['config']['properties'] as $property) {
 					$propValues[] = $element->getProperty($property->getField('CODE'))['VALUE'];
 				}
