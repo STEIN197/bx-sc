@@ -61,11 +61,6 @@
 			return $this->iblock;
 		}
 
-		public function getParent(): ?Section {
-			$parentID = $this->getFields()['IBLOCK_SECTION_ID'];
-			return $parentID ? self::getByID($parentID) : null;
-		}
-
 		/**
 		 * Получает все значения для данного раздела данного свойства.
 		 * @param array $arProperty Для какого свойтсва получать значения.
