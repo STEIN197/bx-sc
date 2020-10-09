@@ -73,13 +73,18 @@
 		}
 
 		/**
-		 * @param mixed $entity
-		 * @return static
+		 * Возвращает объект сущности по типу переданного параметра.
+		 * Если это число или строка, содержащая число, то возвращается
+		 * сущность по идентификатору. Если это массив, то он оборачивается
+		 * в объект, а если это сама сущность, то возвращается сама сущность
+		 * @param string|int|array|static $entity Параметр, из которого нужно сделать сущность
+		 * @return static Объект сущности
+		 * @throws Exception Если нельзя создать сущность. Например если сущности с переданным идентификатором не существует/
 		 */
 		public static final function make($entity) {
-			if (is_int($entity) || is_string($entity) && preg_match('/^\d+$/', $entity))
+			if (is_int($entity) || is_string($entity) && intval($entity) == $entity)
 				return static::getByID((int) $entity, true);
-			if (is_array($entity) && $entity['ID'])
+			if (is_array($entity) && isset($entity['ID']))
 				return static::wrap($entity);
 			if ($entity instanceof static)
 				return $entity;
