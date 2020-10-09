@@ -64,6 +64,16 @@
 		public function addMain($section, array $config): void {
 			$section = Section::make($section);
 			$this->add($section, $config);
+			$properties = [];
+			foreach ($config['properties'] as $property) {
+				$oProperty = Property::make($property);
+				if (!$oProperty && is_string($property))
+					$oProperty = Property::wrap($this->iblock->getProperty($property));
+				if (!$oProperty)
+					throw new Exception('Unable to create property');
+				$properties[$oProperty->getField('CODE')] = $oProperty;
+			}
+			$config['properties'] = $properties;
 			$this->mainSection = [
 				'section' => $section,
 				'config' => $config
@@ -87,6 +97,7 @@
 
 		// TODO
 		public function execute(): void {
+			global $DB;
 			foreach ($this->arSections as $id => &$ar) {
 				$arExistingSections = $this->getExistingSections((int) $id);
 				$config = &$ar['config'];
@@ -146,7 +157,21 @@
 						throw new Exception('createCode callback not specified for multiple distinct');
 					$element->setParents([$ar['existingSections'][$valueCode]]);
 				}
+				$propValues = [];
+				$mainExistingSections = &$this->arSections[(string) $this->mainSection['section']->getID()]['existingSections'];
+				foreach ($this->mainSection['config']['properties'] as $property) {
+					$propValues[] = $element->getProperty($property->getField('CODE'))['VALUE'];
+				}
+				if (@$this->mainSection['config']['callbacks']['createCode'])
+					$valueCode = $this->mainSection['config']['callbacks']['createCode'](...$propValues);
+				elseif (sizeof($propValues) === 1)
+					$valueCode = Util::translit($element->getProperty(array_values($this->mainSection['config']['properties'])[0]->getField('CODE'))['VALUE']);
+				else
+					throw new Exception('createCode callback not specified for multiple distinct');
+				$DB->Query("UPDATE b_iblock_element SET IBLOCK_SECTION_ID = {$mainExistingSections[$valueCode]} WHERE ID = {$element->getID()}");
 			}
+			if ($this->elementSource === self::ELEMENT_SOURCE_SECTION)
+				$DB->Query("DELETE FROM b_iblock_section_element WHERE IBLOCK_SECTION_ID = {$this->elementSourceSection->getID()}");
 			$this->mainSection; // TODO
 		}
 
