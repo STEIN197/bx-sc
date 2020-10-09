@@ -4,6 +4,7 @@
 	use SC\IBlock\IBlock;
 	use SC\IBlock\Section;
 	use SC\IBlock\Property;
+	use SC\IBlock\Element;
 	use SC\Util;
 	use \Exception;
 	use \ReflectionClass;
@@ -86,13 +87,7 @@
 
 		// TODO
 		public function execute(): void {
-			// $arFilter = [];
-			// if ($this->elementSource === self::ELEMENT_SOURCE_ROOT)
-			// 	$arFilter['SECTION_ID'] = false;
-			// elseif ($this->elementSource === self::ELEMENT_SOURCE_SECTION)
-			// 	$arFilter['SECTION_ID'] = $this->elementSourceSection;
-			// $arElements = $this->iblock->getElements($filter, []);
-			foreach ($this->arSections as $id => $ar) {
+			foreach ($this->arSections as $id => &$ar) {
 				$arExistingSections = $this->getExistingSections((int) $id);
 				$config = &$ar['config'];
 				if ($this->elementSource === self::ELEMENT_SOURCE_SECTION)
@@ -133,8 +128,33 @@
 					]);
 					$oSection->save();
 				}
+				$ar['existingSections'] = $this->getExistingSections((int) $id);
 			}
-			$this->mainSection;
+
+			foreach ($this->retrieveElements() as $arElement) {
+				$element = Element::wrap($arElement);
+				foreach ($this->arSections as $id => $ar) {
+					$propValues = [];
+					foreach ($ar['config']['properties'] as $property) {
+						$propValues[] = $element->getProperty($property->getField('CODE'))['VALUE'];
+					}
+					if (@$ar['config']['callbacks']['createCode'])
+						$valueCode = $ar['config']['callbacks']['createCode'](...$propValues);
+					elseif (sizeof($propValues) === 1)
+						$valueCode = Util::translit($element->getProperty(array_values($ar['config']['properties'])[0]->getField('CODE'))['VALUE']);
+					else
+						throw new Exception('createCode callback not specified for multiple distinct');
+					$element->setParents([$ar['existingSections'][$valueCode]]);
+				}
+			}
+			$this->mainSection; // TODO
+		}
+
+		private function retrieveElements(): array {
+			$arFilter = [];
+			if ($this->elementSource !== self::ELEMENT_SOURCE_ALL)
+				$arFilter['SECTION_ID'] = $this->elementSource === self::ELEMENT_SOURCE_ROOT ? false : $this->elementSourceSection->getID();
+			return $this->iblock->getElements($arFilter, []);
 		}
 
 		private function getExistingSections(int $parentSection): array {
