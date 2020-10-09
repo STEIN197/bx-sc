@@ -86,11 +86,14 @@
 			throw new Exception("Cannot make entity from input: {$entity}");
 		}
 
+		/**
+		 * Преобразует все числовые строки массива в числа.
+		 * @param array $arFields Массив, типы значений которых нужно преобразовать.
+		 * @return void
+		 */
 		public static final function castTypes(array &$arFields): void {
 			foreach ($arFields as &$value)
-				if (preg_match('/^\d+$/', $value))
-					$value = (int) $value;
-				elseif (preg_match('/^\d+\.\d+$/', $value))
-					$value = (float) $value;
+				if (is_numeric($value))
+					$value = intval($value) == $value ? (int) $value : (float) $value;
 		}
 	}
