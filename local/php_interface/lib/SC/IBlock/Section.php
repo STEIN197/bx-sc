@@ -167,6 +167,22 @@
 			return "SELECT DISTINCT {$clauseSelect} FROM {$clauseFrom} WHERE {$clauseWhere}";
 		}
 
+		public function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+			return Element::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->getField('IBLOCK_ID'), 'SECTION_ID' => $this->id]), $arOrder, $arSelect, $arNav);
+		}
+
+		public function getSections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+			return Section::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->getField('IBLOCK_ID'), 'SECTION_ID' => $this->id]), $arOrder, $arSelect, $arNav);
+		}
+
+		public function getSubsections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+			return Section::getList(array_merge($arFilter, [
+				'IBLOCK_ID' => $this->getField('IBLOCK_ID'),
+				'>LEFT_MARGIN' => $this->getField('LEFT_MARGIN'),
+				'<RIGHT_MARGIN' => $this->getField('RIGHT_MARGIN')
+			]), $arOrder, $arSelect, $arNav);
+		}
+
 		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
 			$rs = CIBlockSection::GetList($arOrder, $arFilter, false, $arSelect, $arNav);
 			$result = [];
