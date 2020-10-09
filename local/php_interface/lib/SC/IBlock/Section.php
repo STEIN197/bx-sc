@@ -19,9 +19,9 @@
 		public function save(): void {
 			$csection = new CIBlockSection;
 			if ($this->id) {
-				$result = $csection->Update($this->id, array_merge($this->arFields, $this->arProperties));
+				$result = $csection->Update($this->id, array_merge($this->arFields ?: [], $this->arProperties ?: []));
 			} else {
-				$result = $csection->Add(array_merge($this->arFields, $this->arProperties));
+				$result = $csection->Add(array_merge($this->arFields ?: [], $this->arProperties ?: []));
 				$this->id = $result;
 			}
 			if (!$result)
@@ -86,7 +86,7 @@
 			$result = [];
 			$rs = $DB->Query($q);
 			while ($ar = $rs->Fetch())
-				$result[] = $ar['VALUE'];
+				$result[] = $ar;
 			natsort($result);
 			return $result;
 		}
