@@ -1,0 +1,25 @@
+{
+    "name": "sc/bitrix",
+    "type": "library",
+    "authors": [
+        {
+            "name": "STEIN197",
+            "email": "nil20122013@gmail.com"
+        }
+    ],
+    "require": {
+        "wikimedia/composer-merge-plugin": "dev-master"
+    },
+    "extra": {
+        "merge-plugin": {
+            "require": [
+                "../../bitrix/composer-bx.json"
+            ]
+        }
+	},
+	"autoload": {
+		"psr-4": {
+			"": "lib/"
+		}
+	}
+}
