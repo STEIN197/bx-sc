@@ -1,6 +1,6 @@
 <?php
 
-	namespace SC;
+	namespace SC\Bitrix;
 
 	final class Options {
 

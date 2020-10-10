@@ -1,11 +1,11 @@
 <?php
-	namespace SC\KDAImportExcel;
+	namespace SC\Bitrix\KDAImportExcel;
 
-	use SC\IBlock\IBlock;
-	use SC\IBlock\Section;
-	use SC\IBlock\Property;
-	use SC\IBlock\Element;
-	use SC\Util;
+	use SC\Bitrix\IBlock\IBlock;
+	use SC\Bitrix\IBlock\Section;
+	use SC\Bitrix\IBlock\Property;
+	use SC\Bitrix\IBlock\Element;
+	use SC\Bitrix\Util;
 	use \Exception;
 	use \ReflectionClass;
 

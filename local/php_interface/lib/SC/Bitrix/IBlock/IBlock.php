@@ -1,37 +1,40 @@
 <?php
-	namespace SC\IBlock;
+	namespace SC\Bitrix\IBlock;
 
-	use \CIBlockSection;
+	use \CIBlock;
 	use \Exception;
 
-	class Section extends Entity implements EntityContainer {
+	class IBlock extends Entity implements EntityContainer {
 
-		use Parentable;
 		use Propertiable;
-
-		protected $iblock;
 
 		public function __construct(?array $arFields = null, ?array $arProperties = null) {
 			$this->arFields = $arFields;
 			$this->arProperties = $arProperties;
 		}
 
+		public function getIBlock(): ?IBlock {
+			return $this;
+		}
+
 		public function save(): void {
-			$csection = new CIBlockSection;
+			$ciblock = new CIBlock;
 			if ($this->id) {
-				$result = $csection->Update($this->id, array_merge($this->arFields ?: [], $this->arProperties ?: []));
+				$result = $ciblock->Update($this->id, $this->arFields);
 			} else {
-				$result = $csection->Add(array_merge($this->arFields ?: [], $this->arProperties ?: []));
-				$this->id = $result;
+				$result = $ciblock->Add($this->arFields);
+				if ($result)
+					$this->id = $result;
 			}
 			if (!$result)
-				throw new Exception($csection->LAST_ERROR);
+				throw new Exception($ciblock->LAST_ERROR);
+			$this->saveProperties();
 		}
 
 		public function delete(): void {
 			if (!$this->id)
 				return;
-			if (CIBlockSection::delete($this->id)) {
+			if (CIBlock::delete($this->id)) {
 				$this->id = null;
 				unset($this->arFields['ID']);
 			} else {
@@ -40,48 +43,72 @@
 		}
 
 		protected function fetchFields(): void {
-			$this->arFields = CIBlockSection::GetByID($this->id)->GetNext();
-			$this->arFields['PICTURE'] = \CFile::GetFileArray($this->arFields['PICTURE']);
+			$this->arFields = CIBlock::GetByID($this->id)->GetNext();
 		}
 
 		protected function fetchProperties(): void {
-			$this->arProperties = CIBlockSection::GetList(
-				array(), array(
-					'IBLOCK_ID' => $this->getIBlock()->getID(),
-					'ID' => $this->id
-				), false, array(
-					'UF_*'
-				)
-			)->GetNext();
+			$this->arProperties = Property::getList([
+				'IBLOCK_ID' => $this->id,
+			]);
 		}
 
-		public function getIBlock(): IBlock {
-			if (!$this->iblock)
-				$this->iblock = IBlock::getByID($this->arFields['IBLOCK_ID']);
-			return $this->iblock;
+		private function saveProperties(): void {
+			$arPropertyCodes = array_keys($this->arProperties);
+			$arExistingProperties = Property::getList([
+				'IBLOCK_ID' => $this->id,
+				'CODE' => $arPropertyCodes
+			]);
+			foreach ($arExistingProperties as $key => $arProperty)
+				Property::wrap($arProperty)->save();
+			$arNewPropertyCodes = array_diff($arPropertyCodes, array_keys($arExistingProperties));
+			foreach ($arNewPropertyCodes as $code)
+				(new Property($this->arProperties[$code]))->save();
 		}
 
-		/**
-		 * Получает все значения для данного раздела данного свойства.
-		 * @param array $arProperty Для какого свойтсва получать значения.
-		 * @param bool $includeInactive Включать в выборку неактивные элементы.
-		 * @param array $arFilter Доп. фильтрация для выборки значений.
-		 */
-		public function getDistinctValues(array $properties, array $arFilter = null, bool $includeInactive = false): ?array {
+		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = [], ?array $arNav = null): array {
+			$rs = CIBlock::GetList($arOrder, $arFilter);
+			$result = [];
+			while ($ar = $rs->GetNext())
+				$result[] = $ar;
+			return $result;
+		}
+
+		public static function getByID(int $id, bool $onlyStub = false): ?IBlock {
+			$o = null;
+			if ($onlyStub) {
+				$o = new self;
+				$o->id = $id;
+			} else {
+				$arFields = CIBlock::GetByID($id)->GetNext();
+				if ($arFields)
+					$o = self::wrap($arFields);
+			}
+			return $o;
+		}
+
+		public function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+			return Element::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->id]), $arOrder, $arSelect, $arNav);
+		}
+
+		public function getSections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+			return Section::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->id]), $arOrder, $arSelect, $arNav);
+		}
+
+		public function getDistinctValues(array $properties, ?array $arFilter = null, bool $includeInactive = false): ?array {
 			global $DB;
 			if (!$this->getID())
 				return null;
 			foreach ($properties as &$property) {
 				$oProp = Property::make($property);
 				if (!$oProp && is_string($property))
-					$oProp = Property::wrap($this->getIBlock()->getProperty($property));
+					$oProp = Property::wrap($this->getProperty($property));
 				$property = $oProp;
 			}
 			$q = $this->getDistinctValuesQuery($properties, $arFilter, $includeInactive);
 			$result = [];
 			$rs = $DB->Query($q);
 			while ($ar = $rs->Fetch())
-				$result[] = $ar;
+				$result[] = $ar['VALUE'];
 			natsort($result);
 			return $result;
 		}
@@ -90,8 +117,7 @@
 			$clauseSelect = [];
 			$clauseFrom = 'b_iblock_element';
 			$clauseWhere = [
-				"b_iblock_element.IBLOCK_ID = {$this->getField('IBLOCK_ID')}",
-				"b_iblock_section_element.IBLOCK_SECTION_ID = {$this->getID()}"
+				"b_iblock_element.IBLOCK_ID = {$this->getField('ID')}"
 			];
 			if (!$includeInactive)
 				$clauseWhere[] = "b_iblock_element.ACTIVE = 'Y'";
@@ -157,45 +183,7 @@
 				}
 			}
 			$clauseSelect = join(', ', $clauseSelect);
-			$clauseFrom .= " LEFT JOIN b_iblock_section_element ON b_iblock_element.ID = b_iblock_section_element.IBLOCK_ELEMENT_ID";
 			$clauseWhere = join(' AND ', $clauseWhere);
 			return "SELECT DISTINCT {$clauseSelect} FROM {$clauseFrom} WHERE {$clauseWhere}";
-		}
-
-		public function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
-			return Element::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->getField('IBLOCK_ID'), 'SECTION_ID' => $this->id]), $arOrder, $arSelect, $arNav);
-		}
-
-		public function getSections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
-			return Section::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->getField('IBLOCK_ID'), 'SECTION_ID' => $this->id]), $arOrder, $arSelect, $arNav);
-		}
-
-		public function getSubsections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
-			return Section::getList(array_merge($arFilter, [
-				'IBLOCK_ID' => $this->getField('IBLOCK_ID'),
-				'>LEFT_MARGIN' => $this->getField('LEFT_MARGIN'),
-				'<RIGHT_MARGIN' => $this->getField('RIGHT_MARGIN')
-			]), $arOrder, $arSelect, $arNav);
-		}
-
-		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
-			$rs = CIBlockSection::GetList($arOrder, $arFilter, false, $arSelect, $arNav);
-			$result = [];
-			while ($ar = $rs->GetNext())
-				$result[] = $ar;
-			return $result;
-		}
-
-		public static function getByID(int $id, bool $onlyStub = false): ?Section {
-			$o = null;
-			if ($onlyStub) {
-				$o = new self;
-				$o->id = $id;
-			} else {
-				$arFields = CIBlockSection::GetByID($id)->GetNext();
-				if ($arFields)
-					$o = self::wrap($arFields);
-			}
-			return $o;
 		}
 	}

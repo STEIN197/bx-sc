@@ -1,5 +1,5 @@
 <?php
-	namespace SC\IBlock;
+	namespace SC\Bitrix\IBlock;
 
 	use \CIBlockElement;
 	use \CFile;
