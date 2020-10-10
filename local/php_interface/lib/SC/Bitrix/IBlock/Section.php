@@ -186,7 +186,7 @@
 			return $result;
 		}
 
-		public static function getByID(int $id, bool $onlyStub = false): ?Section {
+		public static function getByID(int $id): ?Section {
 			$o = null;
 			if ($onlyStub) {
 				$o = new self;

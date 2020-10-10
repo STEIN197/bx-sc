@@ -109,7 +109,7 @@
 			return $result;
 		}
 
-		public static function getByID(int $id, bool $onlyStub = false): ?Element {
+		public static function getByID(int $id): ?Element {
 			$o = null;
 			if ($onlyStub) {
 				$o = new self;

@@ -55,7 +55,13 @@
 
 		abstract public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array;
 
-		abstract public static function getByID(int $id, bool $onlyStub = false);
+		abstract public static function getByID(int $id);
+
+		private static function stubFromID(int $id) {
+			$o = new static;
+			$o->id = $id;
+			return $o;
+		}
 
 		public static function fromArray(array $arFields) {
 			$o = new static($arFields);
@@ -76,7 +82,7 @@
 		 */
 		public static final function make($entity) {
 			if (is_int($entity) || is_string($entity) && intval($entity) == $entity)
-				return static::getByID((int) $entity, true);
+				return static::stubFromID((int) $entity);
 			if (is_array($entity) && isset($entity['ID']))
 				return static::fromArray($entity);
 			if ($entity instanceof static)

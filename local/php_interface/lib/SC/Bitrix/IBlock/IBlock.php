@@ -73,7 +73,7 @@
 			return $result;
 		}
 
-		public static function getByID(int $id, bool $onlyStub = false): ?IBlock {
+		public static function getByID(int $id): ?IBlock {
 			$o = null;
 			if ($onlyStub) {
 				$o = new self;

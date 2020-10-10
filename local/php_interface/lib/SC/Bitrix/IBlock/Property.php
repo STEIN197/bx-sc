@@ -60,7 +60,7 @@
 			return $result;
 		}
 
-		public static function getByID(int $id, bool $onlyStub = false): ?self {
+		public static function getByID(int $id): ?self {
 			$o = null;
 			if ($onlyStub) {
 				$o = new self;
