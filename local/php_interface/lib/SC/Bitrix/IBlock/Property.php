@@ -68,7 +68,7 @@
 			} else {
 				$arFields = CIBlockProperty::GetByID($id)->GetNext();
 				if ($arFields)
-					$o = self::wrap($arFields);
+					$o = self::fromArray($arFields);
 			}
 			return $o;
 		}

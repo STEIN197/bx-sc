@@ -57,7 +57,7 @@
 			$rs = $DB->Query($q);
 			$result = [];
 			while ($arFields = $rs->Fetch())
-				$result[] = Section::wrap($arFields);
+				$result[] = Section::fromArray($arFields);
 			return $result;
 		}
 
@@ -117,13 +117,13 @@
 			} else {
 				$arFields = CIBlockElement::GetByID($id)->GetNext();
 				if ($arFields)
-					$o = self::wrap($arFields);
+					$o = self::fromArray($arFields);
 			}
 			return $o;
 		}
 
-		public static function wrap(array $arFields): Element {
-			$o = parent::wrap($arFields);
+		public static function fromArray(array $arFields): Element {
+			$o = parent::fromArray($arFields);
 			$o->arProperties = @$o->arFields['PROPERTIES'];
 			unset($o->arFields['PROPERTIES']);
 			return $o;

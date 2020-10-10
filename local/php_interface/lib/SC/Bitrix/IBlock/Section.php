@@ -74,7 +74,7 @@
 			foreach ($properties as &$property) {
 				$oProp = Property::make($property);
 				if (!$oProp && is_string($property))
-					$oProp = Property::wrap($this->getIBlock()->getProperty($property));
+					$oProp = Property::fromArray($this->getIBlock()->getProperty($property));
 				$property = $oProp;
 			}
 			$q = $this->getDistinctValuesQuery($properties, $arFilter, $includeInactive);
@@ -194,7 +194,7 @@
 			} else {
 				$arFields = CIBlockSection::GetByID($id)->GetNext();
 				if ($arFields)
-					$o = self::wrap($arFields);
+					$o = self::fromArray($arFields);
 			}
 			return $o;
 		}

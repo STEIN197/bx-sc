@@ -57,7 +57,7 @@
 
 		abstract public static function getByID(int $id, bool $onlyStub = false);
 
-		public static function wrap(array $arFields) {
+		public static function fromArray(array $arFields) {
 			$o = new static($arFields);
 			$o->id = (int) $arFields['ID'];
 			if (!$o->id)
@@ -78,7 +78,7 @@
 			if (is_int($entity) || is_string($entity) && intval($entity) == $entity)
 				return static::getByID((int) $entity, true);
 			if (is_array($entity) && isset($entity['ID']))
-				return static::wrap($entity);
+				return static::fromArray($entity);
 			if ($entity instanceof static)
 				return $entity;
 			throw new Exception("Cannot make entity from input: {$entity}");

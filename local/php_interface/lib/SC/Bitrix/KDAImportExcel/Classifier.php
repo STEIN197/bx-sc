@@ -46,7 +46,7 @@
 			foreach ($config['properties'] as $property) {
 				$oProperty = Property::make($property);
 				if (!$oProperty && is_string($property))
-					$oProperty = Property::wrap($this->iblock->getProperty($property));
+					$oProperty = Property::fromArray($this->iblock->getProperty($property));
 				if (!$oProperty)
 					throw new Exception('Unable to create property');
 				$properties[$oProperty->getField('CODE')] = $oProperty;
@@ -68,7 +68,7 @@
 			foreach ($config['properties'] as $property) {
 				$oProperty = Property::make($property);
 				if (!$oProperty && is_string($property))
-					$oProperty = Property::wrap($this->iblock->getProperty($property));
+					$oProperty = Property::fromArray($this->iblock->getProperty($property));
 				if (!$oProperty)
 					throw new Exception('Unable to create property');
 				$properties[$oProperty->getField('CODE')] = $oProperty;
@@ -144,7 +144,7 @@
 			unset($id, $ar);
 
 			foreach ($this->retrieveElements() as $arElement) {
-				$element = Element::wrap($arElement);
+				$element = Element::fromArray($arElement);
 				foreach ($this->arSections as $id => $ar) {
 					$propValues = [];
 					foreach ($ar['config']['properties'] as $property) {

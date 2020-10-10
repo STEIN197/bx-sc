@@ -59,7 +59,7 @@
 				'CODE' => $arPropertyCodes
 			]);
 			foreach ($arExistingProperties as $key => $arProperty)
-				Property::wrap($arProperty)->save();
+				Property::fromArray($arProperty)->save();
 			$arNewPropertyCodes = array_diff($arPropertyCodes, array_keys($arExistingProperties));
 			foreach ($arNewPropertyCodes as $code)
 				(new Property($this->arProperties[$code]))->save();
@@ -81,7 +81,7 @@
 			} else {
 				$arFields = CIBlock::GetByID($id)->GetNext();
 				if ($arFields)
-					$o = self::wrap($arFields);
+					$o = self::fromArray($arFields);
 			}
 			return $o;
 		}
@@ -101,7 +101,7 @@
 			foreach ($properties as &$property) {
 				$oProp = Property::make($property);
 				if (!$oProp && is_string($property))
-					$oProp = Property::wrap($this->getProperty($property));
+					$oProp = Property::fromArray($this->getProperty($property));
 				$property = $oProp;
 			}
 			$q = $this->getDistinctValuesQuery($properties, $arFilter, $includeInactive);
