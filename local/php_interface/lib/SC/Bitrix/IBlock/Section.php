@@ -9,19 +9,18 @@
 		use Parentable;
 		use Propertiable;
 
-		protected $iblock;
-
-		public function __construct(?array $arFields = null, ?array $arProperties = null) {
-			$this->arFields = $arFields;
+		public function __construct(array $arFields = [], array $arProperties = []) {
+			parent::__construct($arFields);
 			$this->arProperties = $arProperties;
+			self::castArrayValuesType($this->arProperties);
 		}
 
 		public function save(): void {
 			$csection = new CIBlockSection;
 			if ($this->id) {
-				$result = $csection->Update($this->id, array_merge($this->arFields ?: [], $this->arProperties ?: []));
+				$result = $csection->Update($this->id, array_merge($this->getFields(), $this->getProperties()));
 			} else {
-				$result = $csection->Add(array_merge($this->arFields ?: [], $this->arProperties ?: []));
+				$result = $csection->Add(array_merge($this->getFields(), $this->getProperties()));
 				$this->id = $result;
 			}
 			if (!$result)
@@ -40,8 +39,7 @@
 		}
 
 		protected function fetchFields(): void {
-			$this->arFields = CIBlockSection::GetByID($this->id)->GetNext();
-			$this->arFields['PICTURE'] = \CFile::GetFileArray($this->arFields['PICTURE']);
+			$this->arFields = CIBlockSection::GetByID($this->id)->GetNext(false, false);
 		}
 
 		protected function fetchProperties(): void {
@@ -53,12 +51,10 @@
 					'UF_*'
 				)
 			)->GetNext();
-		}
-
-		public function getIBlock(): IBlock {
-			if (!$this->iblock)
-				$this->iblock = IBlock::getByID($this->arFields['IBLOCK_ID']);
-			return $this->iblock;
+			foreach ($this->arProperties as $code => $value) {
+				if (strpos($code, 'UF_') !== 0)
+					unset($this->arProperties[$code]);
+			}
 		}
 
 		/**
@@ -170,32 +166,18 @@
 			return Section::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->getField('IBLOCK_ID'), 'SECTION_ID' => $this->id]), $arOrder, $arSelect, $arNav);
 		}
 
-		public function getSubsections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
-			return Section::getList(array_merge($arFilter, [
-				'IBLOCK_ID' => $this->getField('IBLOCK_ID'),
-				'>LEFT_MARGIN' => $this->getField('LEFT_MARGIN'),
-				'<RIGHT_MARGIN' => $this->getField('RIGHT_MARGIN')
-			]), $arOrder, $arSelect, $arNav);
-		}
-
-		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+		public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
 			$rs = CIBlockSection::GetList($arOrder, $arFilter, false, $arSelect, $arNav);
 			$result = [];
-			while ($ar = $rs->GetNext())
+			while ($ar = $rs->GetNext(false, false))
 				$result[] = $ar;
 			return $result;
 		}
 
 		public static function getByID(int $id): ?Section {
-			$o = null;
-			if ($onlyStub) {
-				$o = new self;
-				$o->id = $id;
-			} else {
-				$arFields = CIBlockSection::GetByID($id)->GetNext();
-				if ($arFields)
-					$o = self::fromArray($arFields);
-			}
-			return $o;
+			$arFields = CIBlockSection::GetByID($id)->GetNext();
+			if ($arFields)
+				return self::fromArray($arFields);
+			throw new Exception("There is not section with ID '{$id}'");
 		}
 	}

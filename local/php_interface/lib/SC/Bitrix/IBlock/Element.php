@@ -10,14 +10,15 @@
 		use Parentable;
 		use Propertiable;
 
-		public function __construct(array $arFields, ?array $arProperties = []) {
-			$this->arFields = $arFields;
+		public function __construct(array $arFields = [], array $arProperties = []) {
+			parent::__construct($arFields);
 			$this->arProperties = $arProperties;
+			self::castArrayValuesType($this->arProperties);
 		}
 
 		public function save(): void {
 			$celement = new CIBlockElement;
-			$arFields = array_merge($this->arFields, ['PROPERTY_VALUES' => $this->getProperties()]);
+			$arFields = array_merge($this->getFields(), ['PROPERTY_VALUES' => $this->getProperties()]);
 			if ($this->id) {
 				$result = $celement->Update($this->id, $arFields);
 			} else {
@@ -41,14 +42,13 @@
 		}
 
 		protected function fetchFields(): void {
-			$this->arFields = CIBlockElement::GetByID($this->id)->GetNext();
-			$this->arFields['PREVIEW_PICTURE'] = CFile::GetFileArray($this->arFields['PREVIEW_PICTURE']);
-			$this->arFields['DETAIL_PICTURE'] = CFile::GetFileArray($this->arFields['DETAIL_PICTURE']);
+			$this->arFields = CIBlockElement::GetByID($this->id)->GetNext(false, false);
 		}
 
 		protected function fetchProperties(): void {
-			if ($this->id)
-				$this->arProperties = CIBlockElement::GetByID($this->id)->GetNextElement()->GetProperties();
+			$this->arProperties = CIBlockElement::GetByID($this->id)->GetNextElement()->GetProperties();
+			foreach ($this->arProperties as &$arProp)
+				$arProp = $arProp['VALUE'];
 		}
 
 		public function getParents(): array {
@@ -109,23 +109,19 @@
 			return $result;
 		}
 
-		public static function getByID(int $id): ?Element {
-			$o = null;
-			if ($onlyStub) {
-				$o = new self;
-				$o->id = $id;
-			} else {
-				$arFields = CIBlockElement::GetByID($id)->GetNext();
-				if ($arFields)
-					$o = self::fromArray($arFields);
-			}
-			return $o;
+		public static function getByID(int $id): Element {
+			$arFields = CIBlockElement::GetByID($id)->GetNext();
+			if ($arFields)
+				return self::fromArray($arFields);
+			throw new Exception("There is no element with ID '{$id}'");
 		}
 
 		public static function fromArray(array $arFields): Element {
 			$o = parent::fromArray($arFields);
 			$o->arProperties = @$o->arFields['PROPERTIES'];
 			unset($o->arFields['PROPERTIES']);
+			foreach ($o->arProperties as &$arProp)
+				$arProp = $arProp['VALUE'];
 			return $o;
 		}
 	}

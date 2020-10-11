@@ -6,16 +6,16 @@
 
 	class Property extends Entity {
 
-		public function __construct(?array $arFields = null) {
-			$this->arFields = $arFields;
+		public function __construct(array $arFields = []) {
+			parent::__construct($arFields);
 		}
 
 		public function save(): void {
 			$cproperty = new CIBlockProperty;
 			if ($this->id) {
-				$result = $cproperty->Update($this->id, $this->arFields);
+				$result = $cproperty->Update($this->id, $this->getFields());
 			} else {
-				$result = $cproperty->Add($this->arFields);
+				$result = $cproperty->Add($this->getFields());
 				if ($result)
 					$this->id = $result;
 			}
@@ -49,27 +49,21 @@
 		}
 
 		protected function fetchFields(): void {
-			$this->arFields = CIBlockProperty::GetByID($this->id)->GetNext();
+			$this->arFields = CIBlockProperty::GetByID($this->id)->GetNext(false, false);
 		}
 
 		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
 			$rs = CIBlockProperty::GetList($arOrder, $arFilter);
 			$result = [];
-			while ($ar = $rs->GetNext())
+			while ($ar = $rs->GetNext(false, false))
 				$result[$ar['CODE']] = $ar;
 			return $result;
 		}
 
 		public static function getByID(int $id): ?self {
-			$o = null;
-			if ($onlyStub) {
-				$o = new self;
-				$o->id = $id;
-			} else {
-				$arFields = CIBlockProperty::GetByID($id)->GetNext();
-				if ($arFields)
-					$o = self::fromArray($arFields);
-			}
-			return $o;
+			$arFields = CIBlockProperty::GetByID($id)->GetNext(false, false);
+			if ($arFields)
+				return self::fromArray($arFields);
+			throw new Exception("There is no property with ID '{$id}'");
 		}
 	}

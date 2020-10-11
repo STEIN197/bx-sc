@@ -1,18 +1,25 @@
 <?php
 	namespace SC\Bitrix\IBlock;
 
+	/**
+	 * Трейт используется классами, объекты которых
+	 * могут иметь свойства - инфоблок, раздел или элемент.
+	 */
 	trait Propertiable {
 
+		/** @var array Массив свойств. Ключи массива - это коды свойства. */
 		protected $arProperties;
+		/** @var bool True, если был запрос в БД на выборку свойств. */
+		private $propertiesFetched = false;
 
 		public final function getProperties(): array {
-			if (is_array($this->arProperties))
-				return $this->arProperties;
-			$this->fetchProperties();
-			if (is_array($this->arProperties)) {
-				Entity::castTypes($this->arProperties);
-			} else {
-				$this->arProperties = [];
+			if ($this->id && !$this->propertiesFetched) {
+				$this->fetchProperties();
+				$this->propertiesFetched = true;
+				if (is_array($this->arProperties))
+					Entity::castArrayValuesType($this->arProperties);
+				else
+					$this->arProperties = [];
 			}
 			return $this->arProperties;
 		}
@@ -27,9 +34,7 @@
 		}
 
 		public final function setProperty(string $key, $value) {
-			$old = $this->getProperty($key);
-			$this->arProperties[$key] = $value;
-			return $old;
+			$this->arProperties[$key] = Entity::castValueType($value);
 		}
 
 		/**

@@ -8,21 +8,22 @@
 
 		use Propertiable;
 
-		public function __construct(?array $arFields = null, ?array $arProperties = null) {
-			$this->arFields = $arFields;
+		public function __construct(array $arFields = [], array $arProperties = []) {
+			parent::__construct($arFields);
 			$this->arProperties = $arProperties;
+			self::castArrayValuesType($this->arProperties);
 		}
 
-		public function getIBlock(): ?IBlock {
+		public function getIBlock(): IBlock {
 			return $this;
 		}
 
 		public function save(): void {
 			$ciblock = new CIBlock;
 			if ($this->id) {
-				$result = $ciblock->Update($this->id, $this->arFields);
+				$result = $ciblock->Update($this->id, $this->getFields());
 			} else {
-				$result = $ciblock->Add($this->arFields);
+				$result = $ciblock->Add($this->getFields());
 				if ($result)
 					$this->id = $result;
 			}
@@ -43,7 +44,7 @@
 		}
 
 		protected function fetchFields(): void {
-			$this->arFields = CIBlock::GetByID($this->id)->GetNext();
+			$this->arFields = CIBlock::GetByID($this->id)->GetNext(false, false);
 		}
 
 		protected function fetchProperties(): void {
@@ -53,37 +54,26 @@
 		}
 
 		private function saveProperties(): void {
-			$arPropertyCodes = array_keys($this->arProperties);
-			$arExistingProperties = Property::getList([
-				'IBLOCK_ID' => $this->id,
-				'CODE' => $arPropertyCodes
-			]);
-			foreach ($arExistingProperties as $key => $arProperty)
-				Property::fromArray($arProperty)->save();
-			$arNewPropertyCodes = array_diff($arPropertyCodes, array_keys($arExistingProperties));
-			foreach ($arNewPropertyCodes as $code)
-				(new Property($this->arProperties[$code]))->save();
+			foreach ($this->getProperties() as $arProp)
+				if (isset($arProp['ID']))
+					Property::fromArray($arProp)->save();
+				else
+					(new Property($arProp))->save();
 		}
 
-		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = [], ?array $arNav = null): array {
+		public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = [], ?array $arNav = null): array {
 			$rs = CIBlock::GetList($arOrder, $arFilter);
 			$result = [];
-			while ($ar = $rs->GetNext())
+			while ($ar = $rs->GetNext(false, false))
 				$result[] = $ar;
 			return $result;
 		}
 
-		public static function getByID(int $id): ?IBlock {
-			$o = null;
-			if ($onlyStub) {
-				$o = new self;
-				$o->id = $id;
-			} else {
-				$arFields = CIBlock::GetByID($id)->GetNext();
-				if ($arFields)
-					$o = self::fromArray($arFields);
-			}
-			return $o;
+		public static function getByID(int $id): IBlock {
+			$arFields = CIBlock::GetByID($id)->GetNext(false, false);
+			if ($arFields)
+				return self::fromArray($arFields);
+			throw new Exception("There is no IBlock with ID '{$id}'");
 		}
 
 		public function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {

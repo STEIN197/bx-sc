@@ -19,9 +19,9 @@
 		 */
 		public final function getParent(): ?Section {
 			if (!$this->parent) {
-				$sectionID = @$this->arFields['IBLOCK_SECTION_ID'];
+				$sectionID = $this->getField('IBLOCK_SECTION_ID');
 				if ($sectionID)
-					$this->parent = Section::getByID((int) $sectionID, true);
+					$this->parent = Section::stubFromID($sectionID);
 			}
 			return $this->parent;
 		}
@@ -37,11 +37,11 @@
 		public function setParent($parent): void {
 			if ($parent === null) {
 				$this->arFields['IBLOCK_SECTION_ID'] = 0;
+				$this->parent = null;
 			} else {
 				$oParent = Section::make($parent);
 				$this->arFields['IBLOCK_SECTION_ID'] = $oParent->getID();
-				if ($this->parent)
-					$this->parent = $oParent;
+				$this->parent = $oParent;
 			}
 		}
 	}

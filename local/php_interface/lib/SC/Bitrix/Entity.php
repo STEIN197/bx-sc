@@ -3,48 +3,85 @@
 
 	use \Exception;
 
+	/**
+	 * Класс сущности Bitrix.
+	 * Каждая сущность соответствует записи в базе данных.
+	 */
 	abstract class Entity {
 
+		/** @var int Идентификатор сущности. Поле имеет ненулевое значение только у существующих сущностей */
 		protected $id;
+		/** @var array Поля сущности. */
 		protected $arFields;
+		/** @var bool True, если был запрос в БД на выборку полей. */
+		private $fieldsFetched = false;
 
+		/**
+		 * Создаёт совершенно новую сущность,
+		 * которая ещё не существует в базе.
+		 * @param array $arFields Массив полей сущности.
+		 * @throws Exception Если есть ключ 'ID'. В этом случае стоит вызывать self::fromArray().
+		 */
+		public function __construct(array $arFields = []) {
+			if (isset($arFields['ID']))
+				throw new Exception('Cannot create new entity with existing ID');
+			$this->setFields($arFields);
+		}
+
+		/**
+		 * Возвращает поля сущности массивом.
+		 * @return array
+		 */
 		public final function getFields(): array {
-			if (is_array($this->arFields))
-				return $this->arFields;
-			$this->fetchFields();
-			if (is_array($this->arFields)) {
-				Entity::castTypes($this->arFields);
-			} else {
-				$this->arFields = [];
+			if ($this->id && !$this->fieldsFetched) {
+				$this->fetchFields();
+				$this->fieldsFetched = true;
+				if (is_array($this->arFields))
+					self::castArrayValuesType($this->arFields);
+				else
+					$this->arFields = [];
 			}
 			return $this->arFields;
 		}
 
+		/**
+		 * Устанавливает поля сущности массивом.
+		 * @param array $arFields Какие поля установить сущности.
+		 * @return void
+		 * @see self::setField();
+		 */
 		public final function setFields(array $arFields): void {
 			foreach ($arFields as $key => $value)
 				$this->setField($key, $value);
 		}
 
+		/**
+		 * Возвращает значение поля по его ключу.
+		 * @param string $key Ключ поля, значение которого нужно вернуть.
+		 * @return mixed Значение поля.
+		 */
 		public final function getField(string $key) {
 			return @$this->getFields()[$key];
 		}
 
-		public final function setField(string $key, $value) {
-			$old = $this->getField($key);
-			$this->arFields[$key] = $value;
-			if ($this->id && $key === 'ID' && $this->id != $value)
-				$this->id = (int) $value;
-			if ($this->parent && $key === 'IBLOCK_SECTION_ID' && $this->parent->getID() != $value)
-				$this->parent = null;
-			return $old;
+		/**
+		 * Устанавливает значение одного поля по ключу.
+		 * Числовые значения конвертируются в число.
+		 * @param string $key Ключ поля, значение которого нужно изменить.
+		 * @param mixed $value Новое значение поля.
+		 * @return void
+		 */
+		public final function setField(string $key, $value): void {
+			$value = self::castValueType($value);
+			@$this->arFields[$key] = $value;
+			if ($key === 'ID' && $this->id !== $value)
+				$this->id = $value;
+			if ($key === 'IBLOCK_SECTION_ID' && method_exists($this, 'setParent'))
+				$this->setParent($value);
 		}
 
 		public final function getID(): ?int {
 			return $this->id;
-		}
-
-		public function __toString() {
-			return (string) $this->id;
 		}
 
 		abstract public function save(): void;
@@ -53,21 +90,40 @@
 
 		abstract protected function fetchFields(): void;
 
-		abstract public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array;
+		abstract public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array;
 
+		/**
+		 * Возвращает сущность по её идентификатору.
+		 * @param int $id Идентификатор сущности.
+		 * @return static
+		 * @throws Exception Если сущности с таким ID не найдено.
+		 */
 		abstract public static function getByID(int $id);
 
-		private static function stubFromID(int $id) {
+		/**
+		 * Создаёт объект-заглушку, которая имеет только поле $id.
+		 * Далее с ней можно обращаться как с обычным объектом.
+		 * @param int $id Идентификатор сущности.
+		 * @return static
+		 */
+		protected static function stubFromID(int $id) {
 			$o = new static;
 			$o->id = $id;
 			return $o;
 		}
 
+		/**
+		 * Создаёт объект сущности из массива полей.
+		 * @param array $arFields Массив полей сущности.
+		 * @return static
+		 * @throws Exception Если массив не содержит числового ключа 'ID'.
+		 */
 		public static function fromArray(array $arFields) {
-			$o = new static($arFields);
-			$o->id = (int) $arFields['ID'];
-			if (!$o->id)
+			if (!isset($arFields['ID']))
 				throw new Exception('ID is not present');
+			$o = new static;
+			$o->fieldsFetched = true;
+			$o->setFields($arFields);
 			return $o;
 		}
 
@@ -95,9 +151,12 @@
 		 * @param array $arFields Массив, типы значений которых нужно преобразовать.
 		 * @return void
 		 */
-		public static final function castTypes(array &$arFields): void {
+		public static final function castArrayValuesType(array &$arFields): void {
 			foreach ($arFields as &$value)
-				if (is_numeric($value))
-					$value = intval($value) == $value ? (int) $value : (float) $value;
+				$value = self::castValueType($value);
+		}
+
+		public static final function castValueType($value) {
+			return is_numeric($value) ? (intval($value) == $value ? (int) $value : (float) $value) : $value;
 		}
 	}
