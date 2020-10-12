@@ -63,7 +63,7 @@
 			}
 		}
 
-		public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = [], ?array $arNav = null): array {
+		public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = [], ?array $arNav = null): array {
 			$rs = CIBlock::GetList($arOrder, $arFilter);
 			$result = [];
 			while ($ar = $rs->GetNext(false, false))

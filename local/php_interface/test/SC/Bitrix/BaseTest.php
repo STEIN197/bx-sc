@@ -15,8 +15,7 @@
 			self::clearDatabase();
 		}
 
-		private static function clearDatabase(): void {
-			fwrite(STDOUT, __METHOD__ . "\n");
+		protected static function clearDatabase(): void {
 			global $DB, $DBName;
 			CModule::includeModule('iblock');
 			$rs = CIBlock::GetList([], [

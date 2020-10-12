@@ -123,7 +123,7 @@
 
 		abstract protected function fetchFields(): void;
 
-		abstract public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array;
+		abstract public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array;
 
 		/**
 		 * Возвращает сущность по её идентификатору.
