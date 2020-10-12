@@ -1,2 +1,2 @@
 @ECHO OFF
-cls & vendor\bin\phpunit
+cls & %~dp0\vendor\bin\phpunit --configuration=%~dp0\phpunit.xml
