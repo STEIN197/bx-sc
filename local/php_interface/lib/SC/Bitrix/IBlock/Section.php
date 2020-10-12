@@ -166,6 +166,11 @@
 			return Section::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->getField('IBLOCK_ID'), 'SECTION_ID' => $this->id]), $arOrder, $arSelect, $arNav);
 		}
 
+		// TODO: Переместить свойства
+		public static function fromArray(array $array): Section {
+			
+		}
+
 		public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
 			$rs = CIBlockSection::GetList($arOrder, $arFilter, false, $arSelect, $arNav);
 			$result = [];

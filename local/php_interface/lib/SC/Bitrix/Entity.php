@@ -1,7 +1,7 @@
 <?php
 	namespace SC\Bitrix;
 
-	use \Exception;
+	use Exception;
 
 	/**
 	 * Класс сущности Bitrix.
@@ -20,12 +20,12 @@
 		 * Создаёт совершенно новую сущность,
 		 * которая ещё не существует в базе.
 		 * @param array $arFields Массив полей сущности.
-		 * @throws Exception Если есть ключ 'ID'. В этом случае стоит вызывать self::fromArray().
+		 * @throws EntityCreationException Если есть ключ 'ID'. В этом случае стоит вызывать self::fromArray().
 		 */
 		public function __construct(array $arFields = []) {
-			if (isset($arFields['ID']))
-				throw new Exception('Cannot create new entity with existing ID');
 			$this->setFields($arFields);
+			if (isset($arFields['ID']))
+				throw new EntityCreationException($this, '', EntityCreationException::ID_IS_PRESENT);
 		}
 
 		/**
@@ -96,7 +96,7 @@
 		 * Возвращает сущность по её идентификатору.
 		 * @param int $id Идентификатор сущности.
 		 * @return static
-		 * @throws Exception Если сущности с таким ID не найдено.
+		 * @throws EntityNotFoundException Если сущности с таким ID не найдено.
 		 */
 		abstract public static function getByID(int $id);
 
@@ -114,16 +114,18 @@
 
 		/**
 		 * Создаёт объект сущности из массива полей.
+		 * Предполагается, что сущность уже существует в базе
+		 * и делается обёртка вокруг полей.
 		 * @param array $arFields Массив полей сущности.
 		 * @return static
-		 * @throws Exception Если массив не содержит числового ключа 'ID'.
+		 * @throws EntityCreationException Если массив не содержит числового ключа 'ID'.
 		 */
 		public static function fromArray(array $arFields) {
-			if (!isset($arFields['ID']))
-				throw new Exception('ID is not present');
 			$o = new static;
 			$o->fieldsFetched = true;
 			$o->setFields($arFields);
+			if (!isset($arFields['ID']))
+				throw new EntityCreationException($o, '', EntityCreationException::ID_NOT_PRESENT);
 			return $o;
 		}
 
@@ -134,7 +136,7 @@
 		 * в объект, а если это сама сущность, то возвращается сама сущность
 		 * @param string|int|array|static $entity Параметр, из которого нужно сделать сущность
 		 * @return static Объект сущности
-		 * @throws Exception Если нельзя создать сущность. Например если сущности с переданным идентификатором не существует/
+		 * @throws EntityCreationException Если нельзя создать сущность. Например если сущности с переданным идентификатором не существует/
 		 */
 		public static final function make($entity) {
 			if (is_int($entity) || is_string($entity) && intval($entity) == $entity)
@@ -143,7 +145,7 @@
 				return static::fromArray($entity);
 			if ($entity instanceof static)
 				return $entity;
-			throw new Exception("Cannot make entity from input: {$entity}");
+			throw new EntityCreationException(null, "Cannot create entity from input: {$entity}");
 		}
 
 		/**
