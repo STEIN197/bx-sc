@@ -23,9 +23,10 @@
 		 * @throws EntityCreationException Если есть ключ 'ID'. В этом случае стоит вызывать self::fromArray().
 		 */
 		public function __construct(array $arFields = []) {
-			$this->setFields($arFields);
 			if (isset($arFields['ID']))
-				throw new EntityCreationException($this, '', EntityCreationException::ID_IS_PRESENT);
+				throw new EntityCreationException(null, 'Cannot create entity '.static::class." with ID '{$arFields['ID']}'. ID field must not be presented");
+			$this->arFields = [];
+			$this->setFields($arFields);
 		}
 
 		/**
