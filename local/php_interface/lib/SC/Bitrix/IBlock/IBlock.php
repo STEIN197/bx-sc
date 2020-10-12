@@ -12,6 +12,7 @@
 
 		public function __construct(array $arFields = [], array $arProperties = []) {
 			parent::__construct($arFields);
+			$this->arProperties = [];
 			$this->setProperties($arProperties);
 		}
 

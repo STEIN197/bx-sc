@@ -155,11 +155,11 @@
 		 * @throws EntityCreationException Если массив не содержит числового ключа 'ID'.
 		 */
 		public static function fromArray(array $arFields) {
+			if (!isset($arFields['ID']))
+				throw new EntityCreationException('Cannot create entity '.static::class.". ID field must be presented");
 			$o = new static;
 			$o->fieldsFetched = true;
 			$o->setFields($arFields);
-			if (!isset($arFields['ID']))
-				throw new EntityCreationException($o, '', EntityCreationException::ID_NOT_PRESENT);
 			return $o;
 		}
 
@@ -182,7 +182,7 @@
 				return new static($entity);
 			if ($entity instanceof static)
 				return $entity;
-			throw new EntityCreationException(null, "Cannot create entity from input: {$entity}");
+			throw new EntityCreationException("Cannot create entity from input: {$entity}");
 		}
 
 		/**
