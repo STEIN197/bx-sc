@@ -166,9 +166,18 @@
 			return Section::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->getField('IBLOCK_ID'), 'SECTION_ID' => $this->id]), $arOrder, $arSelect, $arNav);
 		}
 
-		// TODO: Переместить свойства
 		public static function fromArray(array $array): Section {
-			
+			$s = parent::fromArray($array);
+			$hasProperties = false;
+			foreach ($s->getFields() as $code => $value) {
+				$hasProperties = true;
+				if (strpos($code, 'UF_') === 0) {
+					$s->setProperty($code, $value);
+					unset($s->arFields[$code]);
+				}
+			}
+			if ($hasProperties)
+				$s->propertiesFetched = true;
 		}
 
 		public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {

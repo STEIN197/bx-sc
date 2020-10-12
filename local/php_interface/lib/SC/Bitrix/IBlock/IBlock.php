@@ -1,8 +1,10 @@
 <?php
 	namespace SC\Bitrix\IBlock;
 
-	use \CIBlock;
-	use \Exception;
+	use CIBlock;
+	use Exception;
+	use SC\Bitrix\EntityDatabaseException;
+	use SC\Bitrix\EntityNotFoundException;
 
 	class IBlock extends Entity implements EntityContainer {
 
@@ -10,8 +12,7 @@
 
 		public function __construct(array $arFields = [], array $arProperties = []) {
 			parent::__construct($arFields);
-			$this->arProperties = $arProperties;
-			self::castArrayValuesType($this->arProperties);
+			$this->setProperties($arProperties);
 		}
 
 		public function getIBlock(): IBlock {
@@ -28,7 +29,7 @@
 					$this->id = $result;
 			}
 			if (!$result)
-				throw new Exception($ciblock->LAST_ERROR);
+				throw new EntityDatabaseException($this, $ciblock->LAST_ERROR);
 			$this->saveProperties();
 		}
 
@@ -39,7 +40,7 @@
 				$this->id = null;
 				unset($this->arFields['ID']);
 			} else {
-				throw new Exception;
+				throw new EntityDatabaseException($this, 'Cannot delete entity '.self::class." with ID '{$this->id}'");
 			}
 		}
 
@@ -54,11 +55,12 @@
 		}
 
 		private function saveProperties(): void {
-			foreach ($this->getProperties() as $arProp)
-				if (isset($arProp['ID']))
-					Property::fromArray($arProp)->save();
-				else
-					(new Property($arProp))->save();
+			$iblockID = $this->getID();
+			foreach ($this->getProperties() as $prop) {
+				$prop = Property::make($prop);
+				$prop->setField('IBLOCK_ID', $iblockID);
+				$prop->save();
+			}
 		}
 
 		public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = [], ?array $arNav = null): array {
@@ -73,7 +75,7 @@
 			$arFields = CIBlock::GetByID($id)->GetNext(false, false);
 			if ($arFields)
 				return self::fromArray($arFields);
-			throw new Exception("There is no IBlock with ID '{$id}'");
+			throw new EntityNotFoundException(null, 'Entity '.self::class." with ID '{$id}' is not found");
 		}
 
 		public function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {

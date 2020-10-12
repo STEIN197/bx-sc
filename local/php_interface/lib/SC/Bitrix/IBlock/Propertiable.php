@@ -10,7 +10,7 @@
 		/** @var array Массив свойств. Ключи массива - это коды свойства. */
 		protected $arProperties;
 		/** @var bool True, если был запрос в БД на выборку свойств. */
-		private $propertiesFetched = false;
+		protected $propertiesFetched = false;
 
 		public final function getProperties(): array {
 			if ($this->id && !$this->propertiesFetched) {

@@ -84,8 +84,41 @@
 			return $this->id;
 		}
 
+		/**
+		 * Обновляет поля сущности из базы только в том случае,
+		 * если у сущности есть поле $id.
+		 * @return void
+		 */
+		public final function refresh(): void {
+			if (!$this->id)
+				return;
+			$this->fetchFields();
+			if (is_array($this->arFields))
+				self::castArrayValuesType($this->arFields);
+			else
+				$this->arFields = [];
+			if (method_exists($this, 'fetchProperties')) {
+				$this->fetchProperties();
+				if (is_array($this->arProperties))
+					self::castArrayValuesType($this->arProperties);
+				else
+					$this->arProperties = [];
+			}
+		}
+
+		/**
+		 * Сохраняет сущность в базу.
+		 * @return void
+		 * @throws EntityDatabaseException Если возникла ошибка при сохранении сущности.
+		 */
 		abstract public function save(): void;
 
+		/**
+		 * Удаляет сущность из базы,
+		 * сохраняя при этом все поля и свойства объекта.
+		 * @return void
+		 * @throws EntityDatabaseException Если возникла ошибка при удалении сущности.
+		 */
 		abstract public function delete(): void;
 
 		abstract protected function fetchFields(): void;
@@ -133,16 +166,19 @@
 		 * Возвращает объект сущности по типу переданного параметра.
 		 * Если это число или строка, содержащая число, то возвращается
 		 * сущность по идентификатору. Если это массив, то он оборачивается
-		 * в объект, а если это сама сущность, то возвращается сама сущность
+		 * в объект, при этом если в массиве есть ключ 'ID', то возвращается объект из базы,
+		 * а если это сама сущность, то возвращается сущность.
 		 * @param string|int|array|static $entity Параметр, из которого нужно сделать сущность
 		 * @return static Объект сущности
-		 * @throws EntityCreationException Если нельзя создать сущность. Например если сущности с переданным идентификатором не существует/
+		 * @throws EntityCreationException Если нельзя создать сущность.
 		 */
 		public static final function make($entity) {
 			if (is_int($entity) || is_string($entity) && intval($entity) == $entity)
 				return static::stubFromID((int) $entity);
 			if (is_array($entity) && isset($entity['ID']))
 				return static::fromArray($entity);
+			if (is_array($entity))
+				return new static($entity);
 			if ($entity instanceof static)
 				return $entity;
 			throw new EntityCreationException(null, "Cannot create entity from input: {$entity}");

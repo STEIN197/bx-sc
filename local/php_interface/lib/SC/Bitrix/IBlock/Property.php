@@ -1,8 +1,9 @@
 <?php
 	namespace SC\Bitrix\IBlock;
 
-	use \CIBlockProperty;
-	use \Exception;
+	use CIBlockProperty;
+	use Exception;
+	use SC\Bitrix\EntityDatabaseException;
 
 	class Property extends Entity {
 
@@ -20,7 +21,7 @@
 					$this->id = $result;
 			}
 			if (!$result)
-				throw new Exception($cproperty->LAST_ERROR);
+				throw new EntityDatabaseException($this, $cproperty->LAST_ERROR);
 		}
 
 		public function delete(): void {
@@ -30,7 +31,7 @@
 				$this->id = null;
 				unset($this->arFields['ID']);
 			} else {
-				throw new Exception("Cannot delete property {$this}");
+				throw new EntityDatabaseException($this, 'Cannot delete entity '.self::class." with ID '{$this->id}'");
 			}
 		}
 
@@ -64,6 +65,6 @@
 			$arFields = CIBlockProperty::GetByID($id)->GetNext(false, false);
 			if ($arFields)
 				return self::fromArray($arFields);
-			throw new Exception("There is no property with ID '{$id}'");
+			throw new EntityNotFoundException(null, 'Entity '.self::class." with ID '{$id}' is not found");
 		}
 	}
