@@ -40,6 +40,11 @@
 			if (CIBlock::delete($this->id)) {
 				$this->id = null;
 				unset($this->arFields['ID']);
+				foreach ($this->arProperties as &$prop)
+					if ($prop instanceof Property)
+						$prop->setField('ID', 0);
+					else
+						unset($prop['ID']);
 			} else {
 				throw new EntityDatabaseException($this, 'Cannot delete entity '.self::class." with ID '{$this->id}'");
 			}
