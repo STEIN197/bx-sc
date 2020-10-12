@@ -12,6 +12,8 @@
 
 		public function __construct(array $arFields = [], array $arProperties = []) {
 			parent::__construct($arFields);
+			if (!isset($arFields['SITE_ID']))
+				$this->setField('SITE_ID', array(\SITE_ID));
 			$this->arProperties = [];
 			$this->setProperties($arProperties);
 		}

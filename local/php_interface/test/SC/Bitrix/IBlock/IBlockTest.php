@@ -5,21 +5,26 @@
 
 	class IBlockTest extends \SC\Bitrix\BaseTest {
 
-		protected static function populateData(): void {
-			$ib = new \CIBlock;
-			$ib->Add([
+		protected static $populateData = [
+			[
 				'NAME' => 'Каталог',
 				'CODE' => 'catalogue',
 				'IBLOCK_TYPE_ID' => 'catalogue',
+				'SITE_ID' => array('s1'),
 				'ACTIVE' => 'Y'
-			]);
-			$ib = new \CIBlock;
-			$ib->Add([
+			],
+			[
 				'NAME' => 'Каталог 2',
 				'CODE' => 'catalogue2',
 				'IBLOCK_TYPE_ID' => 'catalogue',
+				'SITE_ID' => array('s1'),
 				'ACTIVE' => 'Y'
-			]);
+			]
+		];
+
+		protected static function populateData(): void {
+			foreach (self::$populateData as $arIBlock)
+				(new \IBlock)->Add($arIBlock);
 		}
 
 		public function test_constructor_WhenIDInArray_ThrowsException() {
@@ -60,7 +65,18 @@
 		public function test_delete_OnNew_DoesNothing() {} // TODO
 		public function test_delete_DeletesAllData() {} // TODO
 		
-		public function test_getList_ReturnsCorrectData() {} // TODO
+		public function test_getList_ReturnsCorrectData() {
+			self::populateData();
+			$list = IBlock::getList();
+			$this->assertCount(2, sizeof($list));
+			foreach ($list as $i => $arIBlock) {
+				$ar = self::$populateData[$i];
+				foreach ($ar as $code => $value)
+					$this->assertEquals($value, $arIBlock[$code]);
+			}
+			self::clearDatabase();
+		}
+
 		public function test_getList_WhenDBIsClean_ReturnsEmpty() {
 			$this->assertEmpty(IBlock::getList());
 		}
