@@ -13,6 +13,8 @@
 			parent::__construct($arFields);
 			if (!isset($arFields['SITE_ID']))
 				$this->setField('SITE_ID', array(\SITE_ID));
+			$this->fieldsFetched = true;
+			$this->propertiesFetched = true;
 			$this->arProperties = [];
 			$this->setProperties($arProperties);
 		}
@@ -24,9 +26,9 @@
 		public function save(): void {
 			$ciblock = new CIBlock;
 			if ($this->id) {
-				$result = $ciblock->Update($this->id, $this->getFields());
+				$result = $ciblock->Update($this->id, $this->toArray());
 			} else {
-				$result = $ciblock->Add($this->getFields());
+				$result = $ciblock->Add($this->toArray());
 				if ($result)
 					$this->setField('ID', $result);
 			}
@@ -63,11 +65,14 @@
 		}
 
 		private function saveProperties(): void {
-			$iblockID = $this->getID();
-			foreach ($this->getProperties() as $prop) {
-				$prop = Property::make($prop);
-				$prop->setField('IBLOCK_ID', $iblockID);
-				$prop->save();
+			$arProperties = $this->getProperties();
+			foreach ($arProperties as $code => $prop) {
+				$oProp = Property::make($prop);
+				$oProp->setFields([
+					'CODE' => $code,
+					'IBLOCK_ID' => $this->getID()
+				]);
+				$oProp->save();
 			}
 		}
 

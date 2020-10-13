@@ -75,7 +75,7 @@
 		public final function setField(string $key, $value): void {
 			$value = self::castValueType($value);
 			@$this->arFields[$key] = $value;
-			if ($key === 'ID' && $this->id !== $value)
+			if ($key === 'ID')
 				$this->id = $value;
 			if ($key === 'IBLOCK_SECTION_ID' && method_exists($this, 'setParent'))
 				$this->setParent($value);

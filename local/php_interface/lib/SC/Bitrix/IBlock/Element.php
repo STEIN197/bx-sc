@@ -11,12 +11,19 @@
 		use Parentable;
 		use Propertiable;
 
+		protected $arParents = [];
+		protected $parentsFetched = false;
+		private $arParentIDsToDelete = [];
+
 		public function __construct(array $arFields = [], array $arProperties = []) {
 			parent::__construct($arFields);
+			$this->fieldsFetched = true;
+			$this->propertiesFetched = true;
 			$this->arProperties = [];
 			$this->setProperties($arProperties);
 		}
 
+		// TODO: Conditionaly save parents!
 		public function save(): void {
 			$celement = new CIBlockElement;
 			if ($this->id) {
@@ -56,54 +63,36 @@
 				$arProp = self::castValueType($arProp['VALUE']);
 		}
 
-		// TODO: Cache them?
 		public function getParents(): array {
 			global $DB;
-			$q = "SELECT b_iblock_section.* FROM b_iblock_section_element LEFT JOIN b_iblock_section ON b_iblock_section_element.IBLOCK_SECTION_ID = b_iblock_section.ID WHERE IBLOCK_ELEMENT_ID = {$this->id}";
-			$rs = $DB->Query($q);
-			$result = [];
-			while ($arFields = $rs->Fetch())
-				$result[] = Section::fromArray($arFields);
-			return $result;
+			if ($this->id && !$this->parentsFetched) {
+				$this->parentsFetched = true;
+				$q = "SELECT IBLOCK_SECTION_ID FROM b_iblock_section_element WHERE IBLOCK_ELEMENT_ID = {$this->id}";
+				$rs = $DB->Query($q);
+				while ($ar = $rs->Fetch())
+					$this->arParents[$ar['IBLOCK_SECTION_ID']] = Section::stubFromID((int) $ar['IBLOCK_SECTION_ID']);
+			}
+			return $this->arParents;
 		}
 
-		// TODO: Do not do any queries here!
 		public function setParents(array $parents): void {
-			global $DB;
-			$parentsToAdd = [];
-			foreach ($parents as $parent) {
-				$parent = Section::make($parent);
-				if (!$this->parentExists($parent->getID()))
-					$parentsToAdd[] = $parent->getID();
-			}
-			if ($parentsToAdd) {
-				$q = "INSERT INTO b_iblock_section_element (IBLOCK_SECTION_ID, IBLOCK_ELEMENT_ID) VALUES ";
-				$q .= join(', ', array_map(function($sectionID) {
-					return "({$sectionID}, {$this->id})";
-				}, $parentsToAdd));
-				$DB->Query($q);
-			}
+			$parents = array_map(function($v) {
+				return Section::make($v);
+			}, $parents);
+			foreach ($parents as $section)
+				$this->arParents[$section->getID()] = $section;
 		}
 
-		// TODO: Do not do any queries here!
 		public function deleteParents(array $parents): void {
-			global $DB;
-			$deleteIDs = [];
-			foreach ($parents as $parent) {
-				$parent = Section::make($parent);
-				if (!$parent)
-					throw new Exception('Passed parent is null');
-				$deleteIDs[] = $parent->getID();
-				if ($parent->getID() == $this->getField('IBLOCK_SECTION_ID'))
-					$this->setParent(null);
-			}
-			$DB->Query("DELETE FROM b_iblock_section_element WHERE IBLOCK_SECTION_ID IN (".join(', ', $deleteIDs).") AND IBLOCK_ELEMENT_ID = {$this->id}");
+			$this->arParentIDsToDelete = array_merge($this->arParentIDsToDelete, array_map(function($v) {
+				return Section::make($v)->getID();
+			}, $parents));
 		}
 
 		private function parentExists(int $parentID): bool {
 			global $DB;
 			$rs = $DB->Query("SELECT COUNT(*) AS CNT FROM b_iblock_section_element WHERE IBLOCK_SECTION_ID = {$parentID} AND IBLOCK_ELEMENT_ID = {$this->id}")->Fetch();
-			return $rs && $rs['CNT'] && $rs['CNT'] > 0;
+			return $rs && $rs['CNT'] && intval($rs['CNT']) > 0;
 		}
 
 		public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
