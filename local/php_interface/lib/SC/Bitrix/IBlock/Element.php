@@ -98,7 +98,7 @@
 			$arFilter = array_merge(['CHECK_PERMISSIONS' => 'N'], $arFilter);
 			$rs = CIBlockElement::GetList($arOrder, $arFilter, false, $arNav, $arSelect);
 			$result = [];
-			while ($o = $rs->GetNextElement()) {
+			while ($o = $rs->GetNextElement(false, false)) {
 				$fields = $o->GetFields();
 				$fields['PROPERTY_VALUES'] = [];
 				$properties = $o->GetProperties();
