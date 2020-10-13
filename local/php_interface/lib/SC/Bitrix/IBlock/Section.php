@@ -13,7 +13,6 @@
 
 		public function __construct(array $arFields = [], array $arProperties = []) {
 			parent::__construct($arFields);
-			$this->propertiesFetched = true;
 			$this->arProperties = [];
 			$this->setProperties($arProperties);
 		}
@@ -26,6 +25,7 @@
 				$result = $csection->Add($this->toArray());
 				if ($result)
 					$this->setField('ID', $result);
+				$this->propertiesFetched = true;
 			}
 			if (!$result)
 				throw new EntityDatabaseException($csection->LAST_ERROR);
@@ -46,13 +46,12 @@
 			return array_merge($this->getFields(), $this->getProperties());
 		}
 
-		protected function fetchFields(): void {
-			$this->arFields = CIBlockSection::GetByID($this->id)->GetNext(false, false);
-			self::castArrayValuesType($this->arFields);
+		protected function fetchFields(): array {
+			return CIBlockSection::GetByID($this->id)->GetNext(false, false) ?: [];
 		}
 
-		protected function fetchProperties(): void {
-			$this->arProperties = CIBlockSection::GetList(
+		protected function fetchProperties(): array {
+			$arProperties = CIBlockSection::GetList(
 				array(), array(
 					'IBLOCK_ID' => $this->getIBlock()->getID(),
 					'ID' => $this->id
@@ -60,11 +59,11 @@
 					'UF_*'
 				)
 			)->GetNext();
-			foreach ($this->arProperties as $code => $value) {
+			foreach ($arProperties as $code => $value) {
 				if (strpos($code, 'UF_') !== 0)
-					unset($this->arProperties[$code]);
+					unset($arProperties[$code]);
 			}
-			self::castArrayValuesType($this->arProperties);
+			return $arProperties;
 		}
 
 		/**

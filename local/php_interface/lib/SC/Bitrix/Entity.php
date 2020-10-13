@@ -36,12 +36,9 @@
 		 */
 		public final function getFields(): array {
 			if ($this->id && !$this->fieldsFetched) {
-				$this->fetchFields();
 				$this->fieldsFetched = true;
-				if (is_array($this->arFields))
-					self::castArrayValuesType($this->arFields);
-				else
-					$this->arFields = [];
+				$this->arFields = array_merge($this->arFields ?? [], $this->fetchFields());
+				Entity::castArrayValuesType($this->arFields);
 			}
 			return $this->arFields;
 		}
@@ -133,7 +130,7 @@
 		 * @see self::getFields()
 		 * @see self::refresh()
 		 */
-		abstract protected function fetchFields(): void;
+		abstract protected function fetchFields(): array;
 
 		/**
 		 * Получает список сущностей.
@@ -165,6 +162,7 @@
 		protected static function stubFromID(int $id) {
 			$o = new static;
 			$o->id = $id;
+			$o->fieldsFetched = false;
 			return $o;
 		}
 
@@ -180,7 +178,6 @@
 			if (!isset($arFields['ID']))
 				throw new EntityCreationException('Cannot create entity '.static::class.". ID field must be presented");
 			$o = new static;
-			$o->fieldsFetched = true;
 			$o->setFields($arFields);
 			return $o;
 		}

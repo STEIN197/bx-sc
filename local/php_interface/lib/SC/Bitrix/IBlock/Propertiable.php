@@ -14,12 +14,9 @@
 
 		public final function getProperties(): array {
 			if ($this->id && !$this->propertiesFetched) {
-				$this->fetchProperties();
 				$this->propertiesFetched = true;
-				if (is_array($this->arProperties))
-					Entity::castArrayValuesType($this->arProperties);
-				else
-					$this->arProperties = [];
+				$this->arProperties = array_merge($this->arProperties ?? [], $this->fetchProperties());
+				Entity::castArrayValuesType($this->arProperties);
 			}
 			return $this->arProperties;
 		}
@@ -57,5 +54,5 @@
 				return $ipropValues->getValues();
 		}
 
-		abstract protected function fetchProperties(): void;
+		abstract protected function fetchProperties(): array;
 	}

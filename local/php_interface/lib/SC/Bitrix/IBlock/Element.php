@@ -17,7 +17,6 @@
 
 		public function __construct(array $arFields = [], array $arProperties = []) {
 			parent::__construct($arFields);
-			$this->propertiesFetched = true;
 			$this->arProperties = [];
 			$this->setProperties($arProperties);
 		}
@@ -31,6 +30,7 @@
 				$result = $celement->Add($this->toArray());
 				if ($result)
 					$this->setField('ID', $result);
+				$this->propertiesFetched = true;
 			}
 			if (!$result)
 				throw new EntityDatabaseException($celement->LAST_ERROR);
@@ -51,15 +51,15 @@
 			return array_merge($this->getFields(), ['PROPERTY_VALUES' => $this->getProperties()]);
 		}
 
-		protected function fetchFields(): void {
-			$this->arFields = CIBlockElement::GetByID($this->id)->GetNext(false, false);
-			self::castArrayValuesType($this->arFields);
+		protected function fetchFields(): array {
+			return CIBlockElement::GetByID($this->id)->GetNext(false, false) ?: [];
 		}
 
-		protected function fetchProperties(): void {
-			$this->arProperties = CIBlockElement::GetByID($this->id)->GetNextElement()->GetProperties();
-			foreach ($this->arProperties as &$arProp)
-				$arProp = self::castValueType($arProp['VALUE']);
+		protected function fetchProperties(): array {
+			$arProperties = CIBlockElement::GetByID($this->id)->GetNextElement()->GetProperties();
+			foreach ($arProperties as &$arProp)
+				$arProp = $arProp['VALUE'];
+			return $arProperties;
 		}
 
 		public function getParents(): array {

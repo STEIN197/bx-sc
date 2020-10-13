@@ -13,12 +13,11 @@
 			parent::__construct($arFields);
 			if (!isset($arFields['SITE_ID']))
 				$this->setField('SITE_ID', array(\SITE_ID));
-			$this->propertiesFetched = true;
 			$this->arProperties = [];
 			$this->setProperties($arProperties);
 		}
 
-		public function getIBlock(): IBlock {
+		public function getIBlock(): ?IBlock {
 			return $this;
 		}
 
@@ -30,6 +29,7 @@
 				$result = $ciblock->Add($this->toArray());
 				if ($result)
 					$this->setField('ID', $result);
+				$this->propertiesFetched = true;
 			}
 			if (!$result)
 				throw new EntityDatabaseException($ciblock->LAST_ERROR);
@@ -52,13 +52,12 @@
 			}
 		}
 
-		protected function fetchFields(): void {
-			$this->arFields = CIBlock::GetByID($this->id)->GetNext(false, false);
-			self::castArrayValuesType($this->arFields);
+		protected function fetchFields(): array {
+			return CIBlock::GetByID($this->id)->GetNext(false, false) ?: [];
 		}
 
-		protected function fetchProperties(): void {
-			$this->arProperties = Property::getList([
+		protected function fetchProperties(): array {
+			return Property::getList([
 				'IBLOCK_ID' => $this->id,
 			]);
 		}

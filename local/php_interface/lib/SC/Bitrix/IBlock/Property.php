@@ -49,9 +49,8 @@
 			return $multiple === 'Y';
 		}
 
-		protected function fetchFields(): void {
-			$this->arFields = CIBlockProperty::GetByID($this->id)->GetNext(false, false);
-			self::castArrayValuesType($this->arFields);
+		protected function fetchFields(): array {
+			return CIBlockProperty::GetByID($this->id)->GetNext(false, false) ?: [];
 		}
 
 		public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {

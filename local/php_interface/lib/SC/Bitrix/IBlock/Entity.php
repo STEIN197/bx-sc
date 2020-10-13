@@ -12,8 +12,8 @@
 		 * Возвращает инфоблок, к которому принадлежит сущность.
 		 * @return IBlock
 		 */
-		public function getIBlock(): IBlock {
-			if (!$this->iblock)
+		public function getIBlock(): ?IBlock {
+			if (!$this->iblock && $this->getField('IBLOCK_ID'))
 				$this->iblock = IBlock::stubFromID($this->getField('IBLOCK_ID'));
 			return $this->iblock;
 		}
