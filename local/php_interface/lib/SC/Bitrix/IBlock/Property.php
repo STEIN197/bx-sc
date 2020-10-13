@@ -50,7 +50,7 @@
 		}
 
 		protected function fetchFields(): void {
-			$this->arFields = CIBlockProperty::GetByID($this->id)->GetNext(false, false);
+			$this->arFields = self::castArrayValuesType(CIBlockProperty::GetByID($this->id)->GetNext(false, false));
 		}
 
 		public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {

@@ -11,16 +11,16 @@
 
 		public function __construct(array $arFields = [], array $arProperties = []) {
 			parent::__construct($arFields);
-			$this->arProperties = $arProperties;
-			self::castArrayValuesType($this->arProperties);
+			$this->arProperties = [];
+			$this->setProperties($arProperties);
 		}
 
 		public function save(): void {
 			$csection = new CIBlockSection;
 			if ($this->id) {
-				$result = $csection->Update($this->id, array_merge($this->getFields(), $this->getProperties()));
+				$result = $csection->Update($this->id, $this->toArray());
 			} else {
-				$result = $csection->Add(array_merge($this->getFields(), $this->getProperties()));
+				$result = $csection->Add($this->toArray());
 				$this->id = $result;
 			}
 			if (!$result)
@@ -38,19 +38,23 @@
 			}
 		}
 
+		public function toArray(): array {
+			return array_merge($this->getFields(), $this->getProperties());
+		}
+
 		protected function fetchFields(): void {
-			$this->arFields = CIBlockSection::GetByID($this->id)->GetNext(false, false);
+			$this->arFields = self::castArrayValuesType(CIBlockSection::GetByID($this->id)->GetNext(false, false));
 		}
 
 		protected function fetchProperties(): void {
-			$this->arProperties = CIBlockSection::GetList(
+			$this->arProperties = self::castArrayValuesType(CIBlockSection::GetList(
 				array(), array(
 					'IBLOCK_ID' => $this->getIBlock()->getID(),
 					'ID' => $this->id
 				), false, array(
 					'UF_*'
 				)
-			)->GetNext();
+			)->GetNext());
 			foreach ($this->arProperties as $code => $value) {
 				if (strpos($code, 'UF_') !== 0)
 					unset($this->arProperties[$code]);
@@ -181,6 +185,7 @@
 		}
 
 		public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
+			$arFilter = array_merge(['CHECK_PERMISSIONS' => 'N'], $arFilter);
 			$rs = CIBlockSection::GetList($arOrder, $arFilter, false, $arSelect, $arNav);
 			$result = [];
 			while ($ar = $rs->GetNext(false, false))
@@ -192,6 +197,6 @@
 			$arFields = CIBlockSection::GetByID($id)->GetNext();
 			if ($arFields)
 				return self::fromArray($arFields);
-			throw new Exception("There is not section with ID '{$id}'");
+			throw new EntityNotFoundException('Entity '.self::class." with ID '{$id}' is not found");
 		}
 	}

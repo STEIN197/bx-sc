@@ -107,6 +107,10 @@
 			}
 		}
 
+		public function toArray(): array {
+			return $this->getFields();
+		}
+
 		/**
 		 * Сохраняет сущность в базу.
 		 * @return void
