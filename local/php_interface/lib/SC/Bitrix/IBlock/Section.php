@@ -1,8 +1,10 @@
 <?php
 	namespace SC\Bitrix\IBlock;
 
-	use \CIBlockSection;
-	use \Exception;
+	use CIBlockSection;
+	use Exception;
+	use SC\Bitrix\EntityDatabaseException;
+	use SC\Bitrix\EntityNotFoundException;
 
 	class Section extends Entity implements EntityContainer {
 
@@ -21,10 +23,11 @@
 				$result = $csection->Update($this->id, $this->toArray());
 			} else {
 				$result = $csection->Add($this->toArray());
-				$this->id = $result;
+				if ($result)
+					$this->setField('ID', $result);
 			}
 			if (!$result)
-				throw new Exception($csection->LAST_ERROR);
+				throw new EntityDatabaseException($csection->LAST_ERROR);
 		}
 
 		public function delete(): void {
@@ -34,7 +37,7 @@
 				$this->id = null;
 				unset($this->arFields['ID']);
 			} else {
-				throw new Exception;
+				throw new EntityDatabaseException('Cannot delete entity '.self::class." with ID '{$this->id}'");
 			}
 		}
 
@@ -43,22 +46,24 @@
 		}
 
 		protected function fetchFields(): void {
-			$this->arFields = self::castArrayValuesType(CIBlockSection::GetByID($this->id)->GetNext(false, false));
+			$this->arFields = CIBlockSection::GetByID($this->id)->GetNext(false, false);
+			self::castArrayValuesType($this->arFields);
 		}
 
 		protected function fetchProperties(): void {
-			$this->arProperties = self::castArrayValuesType(CIBlockSection::GetList(
+			$this->arProperties = CIBlockSection::GetList(
 				array(), array(
 					'IBLOCK_ID' => $this->getIBlock()->getID(),
 					'ID' => $this->id
 				), false, array(
 					'UF_*'
 				)
-			)->GetNext());
+			)->GetNext();
 			foreach ($this->arProperties as $code => $value) {
 				if (strpos($code, 'UF_') !== 0)
 					unset($this->arProperties[$code]);
 			}
+			self::castArrayValuesType($this->arProperties);
 		}
 
 		/**
@@ -184,7 +189,7 @@
 				$s->propertiesFetched = true;
 		}
 
-		public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
+		public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
 			$arFilter = array_merge(['CHECK_PERMISSIONS' => 'N'], $arFilter);
 			$rs = CIBlockSection::GetList($arOrder, $arFilter, false, $arSelect, $arNav);
 			$result = [];

@@ -50,10 +50,11 @@
 		}
 
 		protected function fetchFields(): void {
-			$this->arFields = self::castArrayValuesType(CIBlockProperty::GetByID($this->id)->GetNext(false, false));
+			$this->arFields = CIBlockProperty::GetByID($this->id)->GetNext(false, false);
+			self::castArrayValuesType($this->arFields);
 		}
 
-		public static function getList(array $arFilter, array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
+		public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
 			$arFilter = array_merge(['CHECK_PERMISSIONS' => 'N'], $arFilter);
 			$rs = CIBlockProperty::GetList($arOrder, $arFilter);
 			$result = [];

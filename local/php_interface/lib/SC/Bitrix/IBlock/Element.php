@@ -1,9 +1,10 @@
 <?php
 	namespace SC\Bitrix\IBlock;
 
-	use \CIBlockElement;
-	use \CFile;
-	use \Exception;
+	use CIBlockElement;
+	use Exception;
+	use SC\Bitrix\EntityDatabaseException;
+	use SC\Bitrix\EntityNotFoundException;
 
 	class Element extends Entity {
 
@@ -12,22 +13,21 @@
 
 		public function __construct(array $arFields = [], array $arProperties = []) {
 			parent::__construct($arFields);
-			$this->arProperties = $arProperties;
-			self::castArrayValuesType($this->arProperties);
+			$this->arProperties = [];
+			$this->setProperties($arProperties);
 		}
 
 		public function save(): void {
 			$celement = new CIBlockElement;
-			$arFields = array_merge($this->getFields(), ['PROPERTY_VALUES' => $this->getProperties()]);
 			if ($this->id) {
-				$result = $celement->Update($this->id, $arFields);
+				$result = $celement->Update($this->id, $this->toArray());
 			} else {
-				$result = $celement->Add($arFields);
+				$result = $celement->Add($this->toArray());
 				if ($result)
-					$this->id = $result;
+					$this->setField('ID', $result);
 			}
 			if (!$result)
-				throw new Exception($celement->LAST_ERROR);
+				throw new EntityDatabaseException($celement->LAST_ERROR);
 		}
 
 		public function delete(): void {
@@ -37,20 +37,26 @@
 				$this->id = null;
 				unset($this->arFields['ID']);
 			} else {
-				throw new Exception;
+				throw new EntityDatabaseException('Cannot delete entity '.self::class." with ID '{$this->id}'");
 			}
+		}
+
+		public function toArray(): array {
+			return array_merge($this->getFields(), ['PROPERTY_VALUES' => $this->getProperties()]);
 		}
 
 		protected function fetchFields(): void {
 			$this->arFields = CIBlockElement::GetByID($this->id)->GetNext(false, false);
+			self::castArrayValuesType($this->arFields);
 		}
 
 		protected function fetchProperties(): void {
 			$this->arProperties = CIBlockElement::GetByID($this->id)->GetNextElement()->GetProperties();
 			foreach ($this->arProperties as &$arProp)
-				$arProp = $arProp['VALUE'];
+				$arProp = self::castValueType($arProp['VALUE']);
 		}
 
+		// TODO: Cache them?
 		public function getParents(): array {
 			global $DB;
 			$q = "SELECT b_iblock_section.* FROM b_iblock_section_element LEFT JOIN b_iblock_section ON b_iblock_section_element.IBLOCK_SECTION_ID = b_iblock_section.ID WHERE IBLOCK_ELEMENT_ID = {$this->id}";
@@ -61,6 +67,7 @@
 			return $result;
 		}
 
+		// TODO: Do not do any queries here!
 		public function setParents(array $parents): void {
 			global $DB;
 			$parentsToAdd = [];
@@ -78,6 +85,7 @@
 			}
 		}
 
+		// TODO: Do not do any queries here!
 		public function deleteParents(array $parents): void {
 			global $DB;
 			$deleteIDs = [];
@@ -98,13 +106,17 @@
 			return $rs && $rs['CNT'] && $rs['CNT'] > 0;
 		}
 
-		public static function getList(array $arFilter, array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+		public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
+			$arFilter = array_merge(['CHECK_PERMISSIONS' => 'N'], $arFilter);
 			$rs = CIBlockElement::GetList($arOrder, $arFilter, false, $arNav, $arSelect);
 			$result = [];
 			while ($o = $rs->GetNextElement()) {
-				$f = $o->GetFields();
-				$f['PROPERTIES'] = $o->GetProperties();
-				$result[] = $f;
+				$fields = $o->GetFields();
+				$fields['PROPERTY_VALUES'] = [];
+				$properties = $o->GetProperties();
+				foreach ($properties as $code => $arProp)
+					$fields['PROPERTY_VALUES'][$code] = $arProp['VALUE'];
+				$result[] = $fields;
 			}
 			return $result;
 		}
@@ -113,15 +125,21 @@
 			$arFields = CIBlockElement::GetByID($id)->GetNext();
 			if ($arFields)
 				return self::fromArray($arFields);
-			throw new Exception("There is no element with ID '{$id}'");
+			throw new EntityNotFoundException('Entity '.self::class." with ID '{$id}' is not found");
 		}
 
 		public static function fromArray(array $arFields): Element {
 			$o = parent::fromArray($arFields);
-			$o->arProperties = @$o->arFields['PROPERTIES'];
-			unset($o->arFields['PROPERTIES']);
-			foreach ($o->arProperties as &$arProp)
-				$arProp = $arProp['VALUE'];
+			if (@$o->arFields['PROPERTY_VALUES']) {
+				$o->arProperties = $o->arFields['PROPERTY_VALUES'];
+				self::castArrayValuesType($o->arProperties);
+				unset($o->arFields['PROPERTY_VALUES']);
+			} elseif (@$o->arFields['PROPERTIES']) {
+				$o->arProperties = [];
+				foreach ($o->arFields as $arProp)
+					$o->arProperties = self::castValueType($arProp['VALUE']);
+				unset($o->arFields['PROPERTIES']);
+			}
 			return $o;
 		}
 	}

@@ -52,7 +52,8 @@
 		}
 
 		protected function fetchFields(): void {
-			$this->arFields = self::castArrayValuesType(CIBlock::GetByID($this->id)->GetNext(false, false));
+			$this->arFields = CIBlock::GetByID($this->id)->GetNext(false, false);
+			self::castArrayValuesType($this->arFields);
 		}
 
 		protected function fetchProperties(): void {

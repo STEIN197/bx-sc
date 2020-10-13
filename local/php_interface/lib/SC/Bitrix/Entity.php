@@ -217,6 +217,7 @@
 				$value = self::castValueType($value);
 		}
 
+		// TODO: Recursive on array?
 		public static final function castValueType($value) {
 			return is_numeric($value) ? (intval($value) == $value ? (int) $value : (float) $value) : $value;
 		}
