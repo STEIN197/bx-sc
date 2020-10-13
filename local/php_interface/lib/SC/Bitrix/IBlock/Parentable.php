@@ -18,11 +18,9 @@
 		 * @return Section|null Родителя. Null, если у сущности нет родителя
 		 */
 		public final function getParent(): ?Section {
-			if (!$this->parent) {
-				$sectionID = $this->getField('IBLOCK_SECTION_ID');
-				if ($sectionID)
-					$this->parent = Section::stubFromID($sectionID);
-			}
+			$parentID = $this->getField('IBLOCK_SECTION_ID');
+			if (!$this->parent && $parentID)
+				$this->parent = Section::stubFromID($parentID);
 			return $this->parent;
 		}
 

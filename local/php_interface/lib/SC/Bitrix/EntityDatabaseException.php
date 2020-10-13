@@ -3,11 +3,7 @@
 
 	class EntityDatabaseException extends \Exception {
 
-		/** @var Entity */
-		private $entity;
-
-		public function __construct($entity, string $message = '', int $code = 0) {
-			$this->entity = $entity;
+		public function __construct(string $message = '', int $code = 0) {
 			$this->message = $message;
 			$this->code = $code;
 		}

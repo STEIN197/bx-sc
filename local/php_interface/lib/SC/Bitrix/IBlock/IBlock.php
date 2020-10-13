@@ -28,10 +28,10 @@
 			} else {
 				$result = $ciblock->Add($this->getFields());
 				if ($result)
-					$this->id = $result;
+					$this->setField('ID', $result);
 			}
 			if (!$result)
-				throw new EntityDatabaseException($this, $ciblock->LAST_ERROR);
+				throw new EntityDatabaseException($ciblock->LAST_ERROR);
 			$this->saveProperties();
 		}
 
@@ -47,7 +47,7 @@
 					else
 						unset($prop['ID']);
 			} else {
-				throw new EntityDatabaseException($this, 'Cannot delete entity '.self::class." with ID '{$this->id}'");
+				throw new EntityDatabaseException('Cannot delete entity '.self::class." with ID '{$this->id}'");
 			}
 		}
 
@@ -86,11 +86,11 @@
 			throw new EntityNotFoundException('Entity '.self::class." with ID '{$id}' is not found");
 		}
 
-		public function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+		public function getElements(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
 			return Element::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->id]), $arOrder, $arSelect, $arNav);
 		}
 
-		public function getSections(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
+		public function getSections(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
 			return Section::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->id]), $arOrder, $arSelect, $arNav);
 		}
 
