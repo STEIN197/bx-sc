@@ -17,7 +17,6 @@
 
 		public function __construct(array $arFields = [], array $arProperties = []) {
 			parent::__construct($arFields);
-			$this->fieldsFetched = true;
 			$this->propertiesFetched = true;
 			$this->arProperties = [];
 			$this->setProperties($arProperties);

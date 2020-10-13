@@ -13,7 +13,6 @@
 			parent::__construct($arFields);
 			if (!isset($arFields['SITE_ID']))
 				$this->setField('SITE_ID', array(\SITE_ID));
-			$this->fieldsFetched = true;
 			$this->propertiesFetched = true;
 			$this->arProperties = [];
 			$this->setProperties($arProperties);

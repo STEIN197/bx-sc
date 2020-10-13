@@ -25,6 +25,7 @@
 		public function __construct(array $arFields = []) {
 			if (isset($arFields['ID']))
 				throw new EntityCreationException('Cannot create entity '.static::class." with ID '{$arFields['ID']}'. ID field must not be presented");
+			$this->fieldsFetched = true;
 			$this->arFields = [];
 			$this->setFields($arFields);
 		}

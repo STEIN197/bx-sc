@@ -9,7 +9,6 @@
 
 		public function __construct(array $arFields = []) {
 			parent::__construct($arFields);
-			$this->fieldsFetched = true;
 		}
 
 		public function save(): void {
