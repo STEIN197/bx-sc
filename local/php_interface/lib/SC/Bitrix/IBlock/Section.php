@@ -187,6 +187,7 @@
 			}
 			if ($hasProperties)
 				$s->propertiesFetched = true;
+			return $s;
 		}
 
 		public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {

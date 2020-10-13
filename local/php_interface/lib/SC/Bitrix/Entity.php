@@ -37,7 +37,7 @@
 		public final function getFields(): array {
 			if ($this->id && !$this->fieldsFetched) {
 				$this->fieldsFetched = true;
-				$this->arFields = array_merge($this->arFields ?? [], $this->fetchFields());
+				$this->arFields = array_merge($this->fetchFields(), $this->arFields ?? []);
 				Entity::castArrayValuesType($this->arFields);
 			}
 			return $this->arFields;

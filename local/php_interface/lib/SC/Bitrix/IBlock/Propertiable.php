@@ -15,7 +15,7 @@
 		public final function getProperties(): array {
 			if ($this->id && !$this->propertiesFetched) {
 				$this->propertiesFetched = true;
-				$this->arProperties = array_merge($this->arProperties ?? [], $this->fetchProperties());
+				$this->arProperties = array_merge($this->fetchProperties(), $this->arProperties ?? []);
 				Entity::castArrayValuesType($this->arProperties);
 			}
 			return $this->arProperties;
