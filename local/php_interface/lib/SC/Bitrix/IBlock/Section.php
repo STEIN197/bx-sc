@@ -58,7 +58,7 @@
 				), false, array(
 					'UF_*'
 				)
-			)->GetNext();
+			)->GetNext(false, false);
 			foreach ($arProperties as $code => $value) {
 				if (strpos($code, 'UF_') !== 0)
 					unset($arProperties[$code]);
@@ -200,7 +200,7 @@
 		}
 
 		public static function getByID(int $id): ?Section {
-			$arFields = CIBlockSection::GetByID($id)->GetNext();
+			$arFields = CIBlockSection::GetByID($id)->GetNext(false, false);
 			if ($arFields)
 				return self::fromArray($arFields);
 			throw new EntityNotFoundException('Entity '.self::class." with ID '{$id}' is not found");
