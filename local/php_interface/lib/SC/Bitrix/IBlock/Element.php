@@ -56,7 +56,7 @@
 		}
 
 		protected function fetchProperties(): array {
-			$arProperties = CIBlockElement::GetByID($this->id)->GetNextElement()->GetProperties();
+			$arProperties = CIBlockElement::GetByID($this->id)->GetNextElement(false, false)->GetProperties();
 			foreach ($arProperties as &$arProp)
 				$arProp = $arProp['VALUE'];
 			return $arProperties;
@@ -110,7 +110,7 @@
 		}
 
 		public static function getByID(int $id): Element {
-			$arFields = CIBlockElement::GetByID($id)->GetNext();
+			$arFields = CIBlockElement::GetByID($id)->GetNext(false, false);
 			if ($arFields)
 				return self::fromArray($arFields);
 			throw new EntityNotFoundException('Entity '.self::class." with ID '{$id}' is not found");
@@ -122,11 +122,13 @@
 				$o->arProperties = $o->arFields['PROPERTY_VALUES'];
 				self::castArrayValuesType($o->arProperties);
 				unset($o->arFields['PROPERTY_VALUES']);
+				$o->propertiesFetched = true;
 			} elseif (@$o->arFields['PROPERTIES']) {
 				$o->arProperties = [];
 				foreach ($o->arFields as $arProp)
 					$o->arProperties = self::castValueType($arProp['VALUE']);
 				unset($o->arFields['PROPERTIES']);
+				$o->propertiesFetched = true;
 			}
 			return $o;
 		}

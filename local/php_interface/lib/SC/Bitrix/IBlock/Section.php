@@ -175,6 +175,21 @@
 			return Section::getList(array_merge($arFilter, ['IBLOCK_ID' => $this->getField('IBLOCK_ID'), 'SECTION_ID' => $this->id]), $arOrder, $arSelect, $arNav);
 		}
 
+		public static function fromArray(array $array): Section {
+			$s = parent::fromArray($array);
+			$hasProperties = false;
+			foreach ($s->getFields() as $code => $value) {
+				if (strpos($code, 'UF_') === 0) {
+					$hasProperties = true;
+					$s->setProperty($code, $value);
+					unset($s->arFields[$code]);
+				}
+			}
+			if ($hasProperties)
+				$s->propertiesFetched = true;
+			return $s;
+		}
+
 		public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {
 			$arFilter = array_merge(['CHECK_PERMISSIONS' => 'N'], $arFilter);
 			$rs = CIBlockSection::GetList($arOrder, $arFilter, false, $arSelect, $arNav);
