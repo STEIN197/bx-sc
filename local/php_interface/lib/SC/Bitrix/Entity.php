@@ -24,7 +24,7 @@
 		 */
 		public function __construct(array $arFields = []) {
 			if (isset($arFields['ID']))
-				throw new EntityCreationException(null, 'Cannot create entity '.static::class." with ID '{$arFields['ID']}'. ID field must not be presented");
+				throw new EntityCreationException('Cannot create entity '.static::class." with ID '{$arFields['ID']}'. ID field must not be presented");
 			$this->arFields = [];
 			$this->setFields($arFields);
 		}
@@ -122,8 +122,24 @@
 		 */
 		abstract public function delete(): void;
 
+		/**
+		 * Получает данные сущности из базы.
+		 * @return void
+		 * @see self::getFields()
+		 * @see self::refresh()
+		 */
 		abstract protected function fetchFields(): void;
 
+		/**
+		 * Получает список сущностей.
+		 * @param array $arFilter Массив для фильтрации.
+		 * @param array $arOrder Массив для сортировки.
+		 * @param array $arSelect Массив для выборки полей.
+		 * @param array $arNav Массив постраничной навигации.
+		 * @return array Массив сущностей. Каждый элемент массива - ассоциативный массив.
+		 *               Внутренние массивы не должны содержать ~-ключи. Если сущностей нет,
+		 *               возвращается пустой массив.
+		 */
 		abstract public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array;
 
 		/**
@@ -137,6 +153,7 @@
 		/**
 		 * Создаёт объект-заглушку, которая имеет только поле $id.
 		 * Далее с ней можно обращаться как с обычным объектом.
+		 * Можно использовать для ленивой выборки полей из базы.
 		 * @param int $id Идентификатор сущности.
 		 * @return static
 		 */
@@ -172,6 +189,7 @@
 		 * @param string|int|array|static $entity Параметр, из которого нужно сделать сущность
 		 * @return static Объект сущности
 		 * @throws EntityCreationException Если нельзя создать сущность.
+		 * @throws EntityNotFoundException Если передан ID сущности, но записи с таким идентификатором не существует.
 		 */
 		public static final function make($entity) {
 			if (is_int($entity) || is_string($entity) && intval($entity) == $entity)

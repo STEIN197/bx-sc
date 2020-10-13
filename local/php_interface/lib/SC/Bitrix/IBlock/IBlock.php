@@ -2,7 +2,6 @@
 	namespace SC\Bitrix\IBlock;
 
 	use CIBlock;
-	use Exception;
 	use SC\Bitrix\EntityDatabaseException;
 	use SC\Bitrix\EntityNotFoundException;
 
@@ -72,6 +71,7 @@
 		}
 
 		public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = [], ?array $arNav = null): array {
+			$arFilter = array_merge(['CHECK_PERMISSIONS' => 'N'], $arFilter);
 			$rs = CIBlock::GetList($arOrder, $arFilter);
 			$result = [];
 			while ($ar = $rs->GetNext(false, false))
@@ -83,7 +83,7 @@
 			$arFields = CIBlock::GetByID($id)->GetNext(false, false);
 			if ($arFields)
 				return self::fromArray($arFields);
-			throw new EntityNotFoundException(null, 'Entity '.self::class." with ID '{$id}' is not found");
+			throw new EntityNotFoundException('Entity '.self::class." with ID '{$id}' is not found");
 		}
 
 		public function getElements(array $arFilter = [], array $arOrder = ['SORT' => 'ASC'], ?array $arSelect = null, ?array $arNav = null): array {
