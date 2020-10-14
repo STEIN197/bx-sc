@@ -194,7 +194,7 @@
 		 * @throws EntityNotFoundException Если передан ID сущности, но записи с таким идентификатором не существует.
 		 */
 		public static final function make($entity) {
-			if (is_int($entity) || is_string($entity) && intval($entity) == $entity)
+			if (is_int($entity) || is_string($entity) && strval(intval($entity)) == $entity)
 				return static::stubFromID((int) $entity);
 			if (is_array($entity) && isset($entity['ID']))
 				return static::fromArray($entity);

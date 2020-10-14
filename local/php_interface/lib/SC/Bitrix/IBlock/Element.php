@@ -11,9 +11,10 @@
 		use Parentable;
 		use Propertiable;
 
-		protected $arParents = [];
+		protected $arNewParents = [];
 		protected $parentsFetched = false;
-		private $arParentIDsToDelete = [];
+		private $arDeletedParents = [];
+		private $arExistingParents = [];
 
 		public function __construct(array $arFields = [], array $arProperties = []) {
 			parent::__construct($arFields);
@@ -34,6 +35,8 @@
 			}
 			if (!$result)
 				throw new EntityDatabaseException($celement->LAST_ERROR);
+			else
+				$this->saveParents();
 		}
 
 		public function delete(): void {
@@ -66,32 +69,82 @@
 			global $DB;
 			if ($this->id && !$this->parentsFetched) {
 				$this->parentsFetched = true;
-				$q = "SELECT IBLOCK_SECTION_ID FROM b_iblock_section_element WHERE IBLOCK_ELEMENT_ID = {$this->id}";
-				$rs = $DB->Query($q);
-				while ($ar = $rs->Fetch())
-					$this->arParents[$ar['IBLOCK_SECTION_ID']] = Section::stubFromID((int) $ar['IBLOCK_SECTION_ID']);
+				$this->arExistingParents = $this->fetchParents();
 			}
-			return $this->arParents;
+			return array_unique(array_merge($this->arNewParents, $this->arExistingParents));
 		}
 
 		public function setParents(array $parents): void {
-			$parents = array_map(function($v) {
-				return Section::make($v);
-			}, $parents);
-			foreach ($parents as $section)
-				$this->arParents[$section->getID()] = $section;
+			$this->arNewParents = array_unique(
+				array_merge(
+					$this->arNewParents,
+					array_map(
+						function($v) {
+							return Section::make($v)->getID();
+						},
+						$parents
+					),
+					$this->getParents()
+				)
+			);
 		}
 
 		public function deleteParents(array $parents): void {
-			$this->arParentIDsToDelete = array_merge($this->arParentIDsToDelete, array_map(function($v) {
-				return Section::make($v)->getID();
-			}, $parents));
+			$this->arDeletedParents = array_unique(
+				array_merge(
+					$this->arDeletedParents,
+					array_map(
+						function($v) {
+							return Section::make($v)->getID();
+						}, $parents
+					)
+				)
+			);
 		}
 
-		private function parentExists(int $parentID): bool {
+		public function saveParents(): void {
 			global $DB;
-			$rs = $DB->Query("SELECT COUNT(*) AS CNT FROM b_iblock_section_element WHERE IBLOCK_SECTION_ID = {$parentID} AND IBLOCK_ELEMENT_ID = {$this->id}")->Fetch();
-			return $rs && $rs['CNT'] && intval($rs['CNT']) > 0;
+			if ($this->id && !$this->parentsFetched) {
+				$this->parentsFetched = true;
+				$this->arExistingParents = $this->fetchParents();
+			}
+			$parentsToInsert = array_diff($this->arNewParents, $this->arExistingParents, $this->arDeletedParents);
+			if (!empty($parentsToInsert)) {
+				$q = "INSERT INTO b_iblock_section_element (IBLOCK_SECTION_ID, IBLOCK_ELEMENT_ID) VALUES ";
+				$q .= join(', ', array_map(function($v) {
+					return "($v, $this->id)";
+				}, $parentsToInsert));
+				$DB->Query($q);
+			}
+			// Не удалять основной раздел
+			$this->arDeletedParents = array_filter($this->arDeletedParents, function($v) {
+				return $this->getParent()->getID() != $v;
+			});
+			if (!empty($this->arDeletedParents)) {
+				$q = "DELETE FROM b_iblock_section_element WHERE IBLOCK_ELEMENT_ID = {$this->id} AND IBLOCK_SECTION_ID IN ";
+				$q .= '('.join(', ', $this->arDeletedParents).')';
+				$DB->Query($q);
+			}
+			$this->arExistingParents = array_diff(
+				array_unique(
+					array_merge(
+						$this->arNewParents,
+						$this->arExistingParents
+					)
+				),
+				$this->arDeletedParents
+			);
+			$this->arDeletedParents = $this->arNewParents = [];
+		}
+
+		private function fetchParents(): array {
+			global $DB;
+			$q = "SELECT IBLOCK_SECTION_ID FROM b_iblock_section_element WHERE IBLOCK_ELEMENT_ID = {$this->id}";
+			$rs = $DB->Query($q);
+			$result = [];
+			while ($ar = $rs->Fetch())
+				$result[] = $ar['IBLOCK_SECTION_ID'];
+			return $result;
 		}
 
 		public static function getList(array $arFilter = [], array $arOrder = [], ?array $arSelect = null, ?array $arNav = null): array {

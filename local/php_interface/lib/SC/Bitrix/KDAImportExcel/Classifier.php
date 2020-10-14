@@ -6,8 +6,9 @@
 	use SC\Bitrix\IBlock\Property;
 	use SC\Bitrix\IBlock\Element;
 	use SC\Bitrix\Util;
-	use \Exception;
-	use \ReflectionClass;
+	use SC\Bitrix\EntityCreationException;
+	use Exception;
+	use ReflectionClass;
 
 	// TODO: Добавить лимит на количество записей
 	// TODO: Добавить внутреннюю классификацию типа /d/dxt/ => /57/57x4/ или /std/angle/ => /gost-12/90/
@@ -31,8 +32,6 @@
 
 		public function __construct($iblock) {
 			$this->iblock = IBlock::make($iblock);
-			if (!$this->iblock)
-				throw new Exception('Cannot create make IBlock object');
 		}
 
 		/**
@@ -44,11 +43,11 @@
 				throw new Exception('Unable to create section');
 			$properties = [];
 			foreach ($config['properties'] as $property) {
-				$oProperty = Property::make($property);
-				if (!$oProperty && is_string($property))
+				try {
+					$oProperty = Property::make($property);
+				} catch (EntityCreationException $ex) {
 					$oProperty = Property::fromArray($this->iblock->getProperty($property));
-				if (!$oProperty)
-					throw new Exception('Unable to create property');
+				}
 				$properties[$oProperty->getField('CODE')] = $oProperty;
 			}
 			$config['properties'] = $properties;
@@ -66,11 +65,11 @@
 			$this->add($section, $config);
 			$properties = [];
 			foreach ($config['properties'] as $property) {
-				$oProperty = Property::make($property);
-				if (!$oProperty && is_string($property))
+				try {
+					$oProperty = Property::make($property);
+				} catch (EntityCreationException $ex) {
 					$oProperty = Property::fromArray($this->iblock->getProperty($property));
-				if (!$oProperty)
-					throw new Exception('Unable to create property');
+				}
 				$properties[$oProperty->getField('CODE')] = $oProperty;
 			}
 			$config['properties'] = $properties;
@@ -95,8 +94,12 @@
 			}
 		}
 
-		// TODO
 		public function execute(): void {
+			$this->createSections();
+			$this->distributeElements();
+		}
+
+		private function createSections(): void {
 			global $DB;
 			foreach ($this->arSections as $id => &$ar) {
 				$arExistingSections = $this->getExistingSections((int) $id);
@@ -141,8 +144,10 @@
 				}
 				$ar['existingSections'] = $this->getExistingSections((int) $id);
 			}
-			unset($id, $ar);
+		}
 
+		private function distributeElements(): void {
+			global $DB;
 			foreach ($this->retrieveElements() as $arElement) {
 				$element = Element::fromArray($arElement);
 				foreach ($this->arSections as $id => $ar) {
@@ -150,30 +155,42 @@
 					foreach ($ar['config']['properties'] as $property) {
 						$propValues[] = $element->getProperty($property->getField('CODE'))['VALUE'];
 					}
-					if (@$ar['config']['callbacks']['createCode'])
+					if (@$ar['config']['callbacks']['createCode']) {
 						$valueCode = $ar['config']['callbacks']['createCode'](...$propValues);
-					elseif (sizeof($propValues) === 1)
-						$valueCode = Util::translit($element->getProperty(array_values($ar['config']['properties'])[0]->getField('CODE'))['VALUE']);
-					else
+					} elseif (sizeof($propValues) === 1) {
+						$valueCode = array_values($ar['config']['properties'])[0]->getField('CODE');
+						// $elProperties = $element->getProperties();
+						// $valueCode = $elProperties[$valueCode];
+						$valueCode = $element->getProperty($valueCode);
+						$valueCode = $valueCode ? Util::translit($valueCode) : null;
+					} else {
 						throw new Exception('createCode callback not specified for multiple distinct');
-					$element->setParents([$ar['existingSections'][$valueCode]]);
+					}
+					if ($valueCode)
+						$element->setParents([$ar['existingSections'][$valueCode]]);
 				}
+				// $element->saveParents();
+				$element->save();
 				$propValues = [];
 				$mainExistingSections = $this->arSections[(string) $this->mainSection['section']->getID()]['existingSections'];
 				foreach ($this->mainSection['config']['properties'] as $property) {
 					$propValues[] = $element->getProperty($property->getField('CODE'))['VALUE'];
 				}
-				if (@$this->mainSection['config']['callbacks']['createCode'])
+				if (@$this->mainSection['config']['callbacks']['createCode']) {
 					$valueCode = $this->mainSection['config']['callbacks']['createCode'](...$propValues);
-				elseif (sizeof($propValues) === 1)
-					$valueCode = Util::translit($element->getProperty(array_values($this->mainSection['config']['properties'])[0]->getField('CODE'))['VALUE']);
-				else
+				} elseif (sizeof($propValues) === 1) {
+					$valueCode = array_values($this->mainSection['config']['properties'])[0]->getField('CODE');
+					$valueCode = $element->getProperty($valueCode);
+					$valueCode = $valueCode ? Util::translit($valueCode) : null;
+				} else {
 					throw new Exception('createCode callback not specified for multiple distinct');
-				$DB->Query("UPDATE b_iblock_element SET IBLOCK_SECTION_ID = {$mainExistingSections[$valueCode]} WHERE ID = {$element->getID()}");
+				}
+				if ($valueCode) {
+					$DB->Query("UPDATE b_iblock_element SET IBLOCK_SECTION_ID = {$mainExistingSections[$valueCode]} WHERE ID = {$element->getID()}");
+				}
 			}
 			if ($this->elementSource === self::ELEMENT_SOURCE_SECTION)
 				$DB->Query("DELETE FROM b_iblock_section_element WHERE IBLOCK_SECTION_ID = {$this->elementSourceSection->getID()}");
-			$this->mainSection; // TODO
 		}
 
 		private function retrieveElements(): array {

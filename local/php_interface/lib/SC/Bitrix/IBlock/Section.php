@@ -3,6 +3,7 @@
 
 	use CIBlockSection;
 	use Exception;
+	use SC\Bitrix\EntityCreationException;
 	use SC\Bitrix\EntityDatabaseException;
 	use SC\Bitrix\EntityNotFoundException;
 
@@ -77,9 +78,11 @@
 			if (!$this->getID())
 				return null;
 			foreach ($properties as &$property) {
-				$oProp = Property::make($property);
-				if (!$oProp && is_string($property))
+				try {
+					$oProp = Property::make($property);
+				} catch (EntityCreationException $ex) {
 					$oProp = Property::fromArray($this->getIBlock()->getProperty($property));
+				}
 				$property = $oProp;
 			}
 			$q = $this->getDistinctValuesQuery($properties, $arFilter, $includeInactive);

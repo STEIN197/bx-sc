@@ -1,44 +1,29 @@
 <?php
 	namespace SC\Bitrix;
 
+	use SC\Bitrix\KDAImportExcel\Classifier;
+
 	final class EventHandler {
 
 		public static $classifiers = [];
 
 		public static function onEndImport(): void {
 			self::importPipes();
-			self::importOtvody();
+			// self::importOtvody();
 		}
 
 		// /truby/dxt/element/
 		private static function importPipes(): void {
 			$cl = new Classifier(1);
-			$cl->setElementSource(Classifier::ELEMENT_SOURCE_SECTION, 1);
-			$cl->add(2, [
+			$cl->setElementSource(Classifier::ELEMENT_SOURCE_SECTION, 2);
+			$cl->add(4, [
+				'properties' => ['STEEL']
+			]);
+			$cl->add(8, [
 				'properties' => ['STANDARD']
 			]);
-			$cl->add(3, [
-				'properties' => [3]
-			]);
-			$cl->addMain(6, [
-				'properties' => ['D', 'T'],
-				'callbacks' => [
-					'createName' => function($dValue, $tValue): string {
-						return "{$dValue}х{$tValue}";
-					},
-					'createCode' => function($dValue, $tValue): string {
-						return Util::translit($dValue).'x'.Util::translit($tValue);
-					},
-					'sort' => function($dValue, $tValue) {
-						return $tValue * 1000;
-					}
-				]
-			]);
-			$cl->add(4, [
-				'properties' => ['D']
-			]);
-			$cl->add(5, [
-				'properties' => ['TYPE']
+			$cl->addMain(3, [
+				'properties' => ['D'],
 			]);
 			$cl->execute();
 			self::$classifiers[] = $cl;
