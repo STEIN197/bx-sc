@@ -159,8 +159,6 @@
 						$valueCode = $ar['config']['callbacks']['createCode'](...$propValues);
 					} elseif (sizeof($propValues) === 1) {
 						$valueCode = array_values($ar['config']['properties'])[0]->getField('CODE');
-						// $elProperties = $element->getProperties();
-						// $valueCode = $elProperties[$valueCode];
 						$valueCode = $element->getProperty($valueCode);
 						$valueCode = $valueCode ? Util::translit($valueCode) : null;
 					} else {
@@ -172,21 +170,25 @@
 				// $element->saveParents();
 				$element->save();
 				$propValues = [];
-				$mainExistingSections = $this->arSections[(string) $this->mainSection['section']->getID()]['existingSections'];
-				foreach ($this->mainSection['config']['properties'] as $property) {
-					$propValues[] = $element->getProperty($property->getField('CODE'))['VALUE'];
-				}
-				if (@$this->mainSection['config']['callbacks']['createCode']) {
-					$valueCode = $this->mainSection['config']['callbacks']['createCode'](...$propValues);
-				} elseif (sizeof($propValues) === 1) {
-					$valueCode = array_values($this->mainSection['config']['properties'])[0]->getField('CODE');
-					$valueCode = $element->getProperty($valueCode);
-					$valueCode = $valueCode ? Util::translit($valueCode) : null;
+				if ($this->mainSection['section']) {
+					$mainExistingSections = $this->arSections[(string) $this->mainSection['section']->getID()]['existingSections'];
+					foreach ($this->mainSection['config']['properties'] as $property) {
+						$propValues[] = $element->getProperty($property->getField('CODE'))['VALUE'];
+					}
+					if (@$this->mainSection['config']['callbacks']['createCode']) {
+						$valueCode = $this->mainSection['config']['callbacks']['createCode'](...$propValues);
+					} elseif (sizeof($propValues) === 1) {
+						$valueCode = array_values($this->mainSection['config']['properties'])[0]->getField('CODE');
+						$valueCode = $element->getProperty($valueCode);
+						$valueCode = $valueCode ? Util::translit($valueCode) : null;
+					} else {
+						throw new Exception('createCode callback not specified for multiple distinct');
+					}
+					if ($valueCode) {
+						$DB->Query("UPDATE b_iblock_element SET IBLOCK_SECTION_ID = {$mainExistingSections[$valueCode]} WHERE ID = {$element->getID()}");
+					}
 				} else {
-					throw new Exception('createCode callback not specified for multiple distinct');
-				}
-				if ($valueCode) {
-					$DB->Query("UPDATE b_iblock_element SET IBLOCK_SECTION_ID = {$mainExistingSections[$valueCode]} WHERE ID = {$element->getID()}");
+					$DB->Query("UPDATE b_iblock_element SET IBLOCK_SECTION_ID = NULL WHERE ID = {$element->getID()}");
 				}
 			}
 			if ($this->elementSource === self::ELEMENT_SOURCE_SECTION)
