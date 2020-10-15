@@ -34,8 +34,11 @@
 		 */
 		public function setParent($parent): void {
 			if ($parent === null) {
-				$this->arFields['IBLOCK_SECTION_ID'] = 0;
+				$oldParent = $this->getField('IBLOCK_SECTION_ID');
+				$this->arFields['IBLOCK_SECTION_ID'] = false;
 				$this->parent = null;
+				if (property_exists($this, 'arParents'))
+					$this->arParents = array_diff($this->getParents(), [$oldParent]);
 			} else {
 				$oParent = Section::make($parent);
 				$this->arFields['IBLOCK_SECTION_ID'] = $oParent->getID();
