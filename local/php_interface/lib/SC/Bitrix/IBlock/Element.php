@@ -5,16 +5,15 @@
 	use Exception;
 	use SC\Bitrix\EntityDatabaseException;
 	use SC\Bitrix\EntityNotFoundException;
+	use SC\Bitrix\EntityCreationException;
 
 	class Element extends Entity {
 
 		use Parentable;
 		use Propertiable;
 
-		protected $arNewParents = [];
+		protected $arParents = [];
 		protected $parentsFetched = false;
-		private $arDeletedParents = [];
-		private $arExistingParents = [];
 
 		public function __construct(array $arFields = [], array $arProperties = []) {
 			parent::__construct($arFields);
@@ -35,8 +34,6 @@
 			}
 			if (!$result)
 				throw new EntityDatabaseException($celement->LAST_ERROR);
-			else
-				$this->saveParents();
 		}
 
 		public function delete(): void {
@@ -51,7 +48,10 @@
 		}
 
 		public function toArray(): array {
-			return array_merge($this->getFields(), ['PROPERTY_VALUES' => $this->getProperties()]);
+			$result = $this->getFields();
+			$result['PROPERTY_VALUES'] = $this->getProperties();
+			$result['IBLOCK_SECTION'] = $this->getParents();
+			return $result;
 		}
 
 		protected function fetchFields(): array {
@@ -69,72 +69,47 @@
 			global $DB;
 			if ($this->id && !$this->parentsFetched) {
 				$this->parentsFetched = true;
-				$this->arExistingParents = $this->fetchParents();
+				$this->arParents = array_unique(array_merge($this->arParents, $this->fetchParents()));
 			}
-			return array_unique(array_merge($this->arNewParents, $this->arExistingParents));
+			return $this->getParent() ? array_unique(array_merge($this->arParents, [$this->getParent()->getID()])) : $this->arParents;
 		}
 
-		public function setParents(array $parents): void {
-			$this->arNewParents = array_unique(
-				array_merge(
-					$this->arNewParents,
+		public function setParents($parents): void {
+			try {
+				$this->arParents[] = Section::make($parents)->getID();
+				$this->arParents = array_unique($this->arParents);
+			} catch (EntityCreationException $ex) {
+				$this->arParents = array_unique(
+					array_merge(
+						$this->getParents(),
+						array_map(
+							function($v) {
+								return Section::make($v)->getID();
+							},
+							$parents
+						)
+					)
+				);
+			}
+		}
+
+		public function deleteParents($parents): void {
+			try {
+				$idToDelete = Section::make($parents)->getID();
+				$k = array_search($idToDelete, $this->arParents);
+				if ($k !== false)
+					unset($this->arParents[$k]);
+			} catch (EntityCreationException $ex) {
+				$this->arParents = array_diff(
+					$this->getParents(),
 					array_map(
 						function($v) {
 							return Section::make($v)->getID();
 						},
 						$parents
-					),
-					$this->getParents()
-				)
-			);
-		}
-
-		public function deleteParents(array $parents): void {
-			$this->arDeletedParents = array_unique(
-				array_merge(
-					$this->arDeletedParents,
-					array_map(
-						function($v) {
-							return Section::make($v)->getID();
-						}, $parents
 					)
-				)
-			);
-		}
-
-		public function saveParents(): void {
-			global $DB;
-			if ($this->id && !$this->parentsFetched) {
-				$this->parentsFetched = true;
-				$this->arExistingParents = $this->fetchParents();
+				);
 			}
-			$parentsToInsert = array_diff($this->arNewParents, $this->arExistingParents, $this->arDeletedParents);
-			if (!empty($parentsToInsert)) {
-				$q = "INSERT INTO b_iblock_section_element (IBLOCK_SECTION_ID, IBLOCK_ELEMENT_ID) VALUES ";
-				$q .= join(', ', array_map(function($v) {
-					return "($v, $this->id)";
-				}, $parentsToInsert));
-				$DB->Query($q);
-			}
-			// Не удалять основной раздел
-			$this->arDeletedParents = array_filter($this->arDeletedParents, function($v) {
-				return $this->getParent()->getID() != $v;
-			});
-			if (!empty($this->arDeletedParents)) {
-				$q = "DELETE FROM b_iblock_section_element WHERE IBLOCK_ELEMENT_ID = {$this->id} AND IBLOCK_SECTION_ID IN ";
-				$q .= '('.join(', ', $this->arDeletedParents).')';
-				$DB->Query($q);
-			}
-			$this->arExistingParents = array_diff(
-				array_unique(
-					array_merge(
-						$this->arNewParents,
-						$this->arExistingParents
-					)
-				),
-				$this->arDeletedParents
-			);
-			$this->arDeletedParents = $this->arNewParents = [];
 		}
 
 		private function fetchParents(): array {
