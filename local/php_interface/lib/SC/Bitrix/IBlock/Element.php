@@ -74,33 +74,9 @@
 			return $this->getParent() ? array_unique(array_merge($this->arParents, [$this->getParent()->getID()])) : $this->arParents;
 		}
 
-		public function setParents($parents): void {
-			try {
-				$this->arParents[] = Section::make($parents)->getID();
-				$this->arParents = array_unique($this->arParents);
-			} catch (EntityCreationException $ex) {
-				$this->arParents = array_unique(
-					array_merge(
-						$this->getParents(),
-						array_map(
-							function($v) {
-								return Section::make($v)->getID();
-							},
-							$parents
-						)
-					)
-				);
-			}
-		}
-
-		public function deleteParents($parents): void {
-			try {
-				$idToDelete = Section::make($parents)->getID();
-				$k = array_search($idToDelete, $this->arParents);
-				if ($k !== false)
-					unset($this->arParents[$k]);
-			} catch (EntityCreationException $ex) {
-				$this->arParents = array_diff(
+		public function setParents(array $parents): void {
+			$this->arParents = array_unique(
+				array_merge(
 					$this->getParents(),
 					array_map(
 						function($v) {
@@ -108,8 +84,20 @@
 						},
 						$parents
 					)
-				);
-			}
+				)
+			);
+		}
+
+		public function deleteParents(array $parents): void {
+			$this->arParents = array_diff(
+				$this->getParents(),
+				array_map(
+					function($v) {
+						return Section::make($v)->getID();
+					},
+					$parents
+				)
+			);
 		}
 
 		private function fetchParents(): array {
