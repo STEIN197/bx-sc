@@ -153,7 +153,7 @@
 				foreach ($this->arSections as $id => $ar) {
 					$propValues = [];
 					foreach ($ar['config']['properties'] as $property) {
-						$propValues[] = $element->getProperty($property->getField('CODE'))['VALUE'];
+						$propValues[] = $element->getProperty($property->getField('CODE'));
 					}
 					if (@$ar['config']['callbacks']['createCode']) {
 						$valueCode = $ar['config']['callbacks']['createCode'](...$propValues);
@@ -173,7 +173,7 @@
 				if ($this->mainSection['section']) {
 					$mainExistingSections = $this->arSections[(string) $this->mainSection['section']->getID()]['existingSections'];
 					foreach ($this->mainSection['config']['properties'] as $property) {
-						$propValues[] = $element->getProperty($property->getField('CODE'))['VALUE'];
+						$propValues[] = $element->getProperty($property->getField('CODE'));
 					}
 					if (@$this->mainSection['config']['callbacks']['createCode']) {
 						$valueCode = $this->mainSection['config']['callbacks']['createCode'](...$propValues);
