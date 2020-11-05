@@ -29,9 +29,12 @@
 		private $elementSource;
 		/** @var Section */
 		private $elementSourceSection;
+		/** @var int */
+		private $elementsCount;
 
-		public function __construct($iblock) {
+		public function __construct($iblock, int $elementsCount = 5000) {
 			$this->iblock = IBlock::make($iblock);
+			$this->elementsCount = $elementsCount;
 		}
 
 		/**
@@ -148,58 +151,67 @@
 
 		private function distributeElements(): void {
 			global $DB;
-			foreach ($this->retrieveElements() as $arElement) {
-				$element = Element::fromArray($arElement);
-				foreach ($this->arSections as $id => $ar) {
+			$arElements = $this->retrieveElements();
+			do {
+				foreach ($arElements as $arElement) {
+					$element = Element::fromArray($arElement);
+					foreach ($this->arSections as $id => $ar) {
+						$propValues = [];
+						foreach ($ar['config']['properties'] as $property) {
+							$propValues[] = $element->getProperty($property->getField('CODE'));
+						}
+						if (@$ar['config']['callbacks']['createCode']) {
+							$valueCode = $ar['config']['callbacks']['createCode'](...$propValues);
+						} elseif (sizeof($propValues) === 1) {
+							$valueCode = array_values($ar['config']['properties'])[0]->getField('CODE');
+							$valueCode = $element->getProperty($valueCode);
+							$valueCode = $valueCode ? Util::translit($valueCode) : null;
+						} else {
+							throw new Exception('createCode callback not specified for multiple distinct');
+						}
+						if ($valueCode)
+							$element->setParents([$ar['existingSections'][$valueCode]]);
+					}
+					$element->save();
 					$propValues = [];
-					foreach ($ar['config']['properties'] as $property) {
-						$propValues[] = $element->getProperty($property->getField('CODE'));
-					}
-					if (@$ar['config']['callbacks']['createCode']) {
-						$valueCode = $ar['config']['callbacks']['createCode'](...$propValues);
-					} elseif (sizeof($propValues) === 1) {
-						$valueCode = array_values($ar['config']['properties'])[0]->getField('CODE');
-						$valueCode = $element->getProperty($valueCode);
-						$valueCode = $valueCode ? Util::translit($valueCode) : null;
+					if ($this->mainSection['section']) {
+						$mainExistingSections = $this->arSections[(string) $this->mainSection['section']->getID()]['existingSections'];
+						foreach ($this->mainSection['config']['properties'] as $property) {
+							$propValues[] = $element->getProperty($property->getField('CODE'));
+						}
+						if (@$this->mainSection['config']['callbacks']['createCode']) {
+							$valueCode = $this->mainSection['config']['callbacks']['createCode'](...$propValues);
+						} elseif (sizeof($propValues) === 1) {
+							$valueCode = array_values($this->mainSection['config']['properties'])[0]->getField('CODE');
+							$valueCode = $element->getProperty($valueCode);
+							$valueCode = $valueCode ? Util::translit($valueCode) : null;
+						} else {
+							throw new Exception('createCode callback not specified for multiple distinct');
+						}
+						if ($valueCode) {
+							$DB->Query("UPDATE b_iblock_element SET IBLOCK_SECTION_ID = {$mainExistingSections[$valueCode]} WHERE ID = {$element->getID()}");
+						}
 					} else {
-						throw new Exception('createCode callback not specified for multiple distinct');
+						$DB->Query("UPDATE b_iblock_element SET IBLOCK_SECTION_ID = NULL WHERE ID = {$element->getID()}");
 					}
-					if ($valueCode)
-						$element->setParents([$ar['existingSections'][$valueCode]]);
+					if ($this->elementsCount > 0 && $this->elementSource === self::ELEMENT_SOURCE_SECTION)
+						$DB->Query("DELETE FROM b_iblock_section_element WHERE IBLOCK_SECTION_ID = {$this->elementSourceSection->getID()} AND IBLOCK_ELEMENT_ID = {$element->getID()}");
 				}
-				// $element->saveParents();
-				$element->save();
-				$propValues = [];
-				if ($this->mainSection['section']) {
-					$mainExistingSections = $this->arSections[(string) $this->mainSection['section']->getID()]['existingSections'];
-					foreach ($this->mainSection['config']['properties'] as $property) {
-						$propValues[] = $element->getProperty($property->getField('CODE'));
-					}
-					if (@$this->mainSection['config']['callbacks']['createCode']) {
-						$valueCode = $this->mainSection['config']['callbacks']['createCode'](...$propValues);
-					} elseif (sizeof($propValues) === 1) {
-						$valueCode = array_values($this->mainSection['config']['properties'])[0]->getField('CODE');
-						$valueCode = $element->getProperty($valueCode);
-						$valueCode = $valueCode ? Util::translit($valueCode) : null;
-					} else {
-						throw new Exception('createCode callback not specified for multiple distinct');
-					}
-					if ($valueCode) {
-						$DB->Query("UPDATE b_iblock_element SET IBLOCK_SECTION_ID = {$mainExistingSections[$valueCode]} WHERE ID = {$element->getID()}");
-					}
-				} else {
-					$DB->Query("UPDATE b_iblock_element SET IBLOCK_SECTION_ID = NULL WHERE ID = {$element->getID()}");
-				}
-			}
-			if ($this->elementSource === self::ELEMENT_SOURCE_SECTION)
+			} while ($this->elementsCount > 0 && !empty($arElements = $this->retrieveElements()));
+			if ($this->elementSource === self::ELEMENT_SOURCE_SECTION && $this->elementsCount === 0)
 				$DB->Query("DELETE FROM b_iblock_section_element WHERE IBLOCK_SECTION_ID = {$this->elementSourceSection->getID()}");
 		}
 
 		private function retrieveElements(): array {
 			$arFilter = [];
+			$arNav = null;
 			if ($this->elementSource !== self::ELEMENT_SOURCE_ALL)
 				$arFilter['SECTION_ID'] = $this->elementSource === self::ELEMENT_SOURCE_ROOT ? false : $this->elementSourceSection->getID();
-			return $this->iblock->getElements($arFilter, []);
+			if ($this->elementsCount > 0)
+				$arNav = [
+					'nTopCount' => $this->elementsCount
+				];
+			return $this->iblock->getElements($arFilter, [], null, $arNav);
 		}
 
 		private function getExistingSections(int $parentSection): array {
